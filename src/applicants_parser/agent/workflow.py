@@ -5,8 +5,8 @@ from langchain_gigachat import GigaChat
 
 from langgraph.prebuilt import create_react_agent
 
-from src.applicant_eye.agent.toolkit import WebAutomatizationToolKit
-from src.applicant_eye.agent.toolkit.browser import BrowserState
+from src.applicants_parser.agent.toolkit import WebAutomatizationToolKit
+from src.applicants_parser.agent.toolkit.browser import BrowserState
 
 model = GigaChat(
     credentials="",

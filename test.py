@@ -6,7 +6,7 @@ from langchain_gigachat import GigaChat
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 
-from src.applicant_eye.agent.toolkit.tools import open_site
+from src.applicants_parser.agent.toolkit.tools import open_site
 
 load_dotenv()
 
