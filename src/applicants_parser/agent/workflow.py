@@ -9,9 +9,9 @@ from src.applicants_parser.agent.toolkit import WebAutomatizationToolKit
 from src.applicants_parser.agent.toolkit.browser import BrowserState
 
 model = GigaChat(
-    credentials="",
-    scope="",
-    model="",
+    credentials="NTJlZTEzZjYtYmUyYy00ZWY2LTllNDMtYWM2YjBjYmM1ODU1OmEzMzIwMmE1LWNkOWMtNGQ4MS05OTNjLWI1Mjk4Mzc4YzUzNw==",
+    scope="GIGACHAT_API_B2B",
+    model="GigaChat-2-Pro",
     profanity_check=False,
     verify_ssl_certs=False
 )
