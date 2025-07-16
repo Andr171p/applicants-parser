@@ -1,16 +1,12 @@
 from typing import Any, Optional
 
-from dataclasses import dataclass, field
-
-# from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 
 from playwright.async_api import Playwright, async_playwright, BrowserContext, Page, Browser
 
 
-@dataclass
-class BrowserState:
+class BrowserState(BaseModel):
     """Состояние браузера для передачи между инструментами."""
-    # model_config = ConfigDict(arbitrary_types_allowed=True)
 
     url: Optional[str] = None
     page_source: Optional[str] = None
@@ -18,7 +14,9 @@ class BrowserState:
     context: Optional[BrowserContext] = None
     browser: Optional[Browser] = None
     playwright: Optional[Playwright] = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def __aenter__(self) -> "BrowserState":
         self.playwright = await async_playwright().start()
