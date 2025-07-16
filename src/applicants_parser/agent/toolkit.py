@@ -1,13 +1,13 @@
-from pydantic import Field, ConfigDict
+from pydantic import ConfigDict
 
 from langchain_core.tools import BaseToolkit
-from langchain_core.language_models import BaseChatModel
 
 from .tools import *
-from .browser import BrowserState
+
+from ..browser import BrowserState
 
 
-class WebAutomatizationToolKit(BaseToolkit):
+class BrowserAutomatizationToolKit(BaseToolkit):
     browser_state: BrowserState = Field(exclude=True)
     model: BaseChatModel = Field(exclude=True)
 

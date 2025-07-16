@@ -1,41 +1,48 @@
+from typing import Optional
+
+import json
 import logging
 
-from pydantic import BaseModel, Field
-
+from langchain_core.tools import BaseTool
+from langchain_core.runnables import RunnableConfig
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import ToolMessage, SystemMessage, BaseMessage
 
-from .utils import create_structured_output_llm_chain
-from .states import AgentState
+# from langgraph.prebuilt import ToolNode
+
+from .states import ReActState
 
 logger = logging.getLogger(__name__)
 
 
-class Plan(BaseModel):
-    steps: list[str] = Field(description="")
-
-
-class PlanStepsNode:
-    def __init__(self, model: BaseChatModel) -> None:
-        self.llm_chain = create_structured_output_llm_chain(
-            output_schema=Plan,
-            prompt_template="",
-            model=model
+async def tool_node(state: ReActState) -> dict[str, list[ToolMessage]]:
+    logger.info("---CALL TOOL---")
+    messages: list[ToolMessage] = []
+    tools_by_name: dict[str, BaseTool] = {tool.name: tool for tool in state["tools"]}
+    for tool_call in state["messages"][-1].tool_calls:
+        tool_result = tools_by_name[tool_call["name"]].ainvoke(tool_call["args"])
+        messages.append(
+            ToolMessage(
+                content=json.dumps(tool_result),
+                name=tool_call["name"],
+                tool_call_id=tool_call["id"]
+            )
         )
-
-    async def __call__(self, state: AgentState) -> dict[str, list[str]]:
-        logger.info("---PLANNING---")
-        plan = await self.llm_chain.ainvoke(...)
-        return {"plan": plan.steps}
+    return {"messages": messages}
 
 
-class ReplanStepsNode:
-    def __init__(self) -> None:
-        ...
+class ModelCallingNode:
+    def __init__(self, model: BaseChatModel, prompt: str) -> None:
+        self.model = model
+        self.prompt = prompt
 
-    async def __call__(self, state: AgentState) -> dict[str, list[str]]:
-        logger.info("---REPLANNING---")
-        ...
-
-
-def should_continue(state: AgentState) -> ...:
-    ...
+    async def __call__(
+            self,
+            state: ReActState,
+            config: Optional[RunnableConfig] = None
+    ) -> dict[str, list[BaseMessage]]:
+        logger.info("---MODEL CALLING---")
+        message = await self.model.ainvoke(
+            [SystemMessage(self.prompt)] + state["messages"], config=config
+        )
+        return {"messages": [message]}

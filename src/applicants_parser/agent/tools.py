@@ -9,11 +9,10 @@ from langchain_core.tools.base import ArgsSchema
 from langchain_core.tools import BaseTool, ToolException
 from langchain_core.language_models import BaseChatModel
 
-from .browser import BrowserState
+from ..browser import BrowserState, clean_html
 
-from ..utils import create_structured_output_llm_chain
-
-from ...utils import clean_html
+from .utils import create_structured_output_llm_chain
+from .prompts import SEARCH_ELEMENT_PROMPT
 
 TIMEOUT = 1
 
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class OpenURLArgsSchema(BaseModel):
-    url: str = Field(description="URL сайта")
+    url: str = Field(description="URL сайта или страницы.")
 
 
 class OpenURLTool(BaseTool):
@@ -118,12 +117,12 @@ class ClickButtonTool(BaseTool):
 
 
 class ExtractTextArgsSchema(BaseModel):
-    css_selector: str = Field(description="CSS селектор.")
+    css_selector: str = Field(description="CSS селектор элемента.")
 
 
 class ExtractTextTool(BaseTool):
     name: str = "ExtractText"
-    description: str = "Получение текста элемента по CSS селектору."
+    description: str = "Получение текста элемента по CSS селектору элемента."
     args_schema: Optional[ArgsSchema] = ExtractTextArgsSchema
 
     def __init__(self, browser_state: BrowserState, **kwargs) -> None:
@@ -139,18 +138,18 @@ class ExtractTextTool(BaseTool):
 
 
 class Element(BaseModel):
-    css_selector: str = Field(description="CSS селектор")
+    css_selector: str = Field(description="CSS селектор элемента")
     type: str = Field(description="Тип элемента")
-    text: str = Field(description="Текст элемента")
+    text: Optional[str] = Field(description="Текст элемента")
 
 
 class SearchElementArgsSchema(BaseModel):
-    description: str = Field(description="Описание элемента.")
+    description: str = Field(description="Описание элемента")
 
 
 class SearchElementTool(BaseTool):
     name: str = "SearchElement"
-    description: str = "Находит элемент по его семантическому описанию."
+    description: str = "Находит элемент по его семантическому описанию"
     args_schema: Optional[ArgsSchema] = SearchElementArgsSchema
 
     def __init__(self, browser_state: BrowserState, model: BaseChatModel, **kwargs) -> None:
@@ -158,7 +157,7 @@ class SearchElementTool(BaseTool):
         self._browser_state = browser_state
         self._llm_chain = create_structured_output_llm_chain(
             output_schema=Element,
-            prompt_template="",
+            prompt_template=SEARCH_ELEMENT_PROMPT,
             model=model
         )
 
@@ -169,5 +168,7 @@ class SearchElementTool(BaseTool):
         logger.info("---SEARCH ELEMENT---")
         page_source = self._browser_state.page_source
         cleaned_page_source = clean_html(page_source)
-        element = await self._llm_chain.ainvoke({"page_source": cleaned_page_source})
+        element = await self._llm_chain.ainvoke({
+            "description": description, "page_source": cleaned_page_source
+        })
         return element.model_dump()
