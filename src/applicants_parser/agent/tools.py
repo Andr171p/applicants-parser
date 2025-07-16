@@ -172,3 +172,23 @@ class SearchElementTool(BaseTool):
             "description": description, "page_source": cleaned_page_source
         })
         return element.model_dump()
+
+
+class DownloadFileToolArgsSchema(BaseModel):
+    css_selector: str = Field(description="CSS селектор элемента с файлом (ссылка или кнопка загрузки)")
+
+
+class DownloadFileTool(BaseTool):
+    name: str = "DownloadFile"
+    description: str = ""
+    args_schema: Optional[ArgsSchema] = DownloadFileToolArgsSchema
+
+    def __init__(self, browser_state: BrowserState, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._browser_state = browser_state
+
+    def _run(self, css_selector: str) -> str:
+        raise NotImplementedError("This tool supports only async calling")
+
+    async def _arun(self, css_selector: str) -> str:
+        ...

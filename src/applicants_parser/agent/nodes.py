@@ -39,6 +39,7 @@ class PlanStepsNode:
 
 
 class ExecuteStepNode:
+    """Узел графа для выполнения задач из плана"""
     def __init__(self, model: BaseChatModel, tools: list[BaseTool], prompt: str) -> None:
         self.agent = create_react_agent(model=model, tools=tools, prompt=prompt)
 

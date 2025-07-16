@@ -26,7 +26,5 @@ class ReActState(TypedDict):
     Состояние ReAct агента для выполнения задач в браузере
 
     :param messages: История сообщений
-    :param url: Текущий URL страницы
     """
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    url: str
