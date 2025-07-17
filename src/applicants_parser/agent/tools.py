@@ -256,6 +256,7 @@ class NavigateBackTool(BaseBrowserTool):
     description: str = "Переходит на предыдущую web-страницу в истории браузера."
 
     def _run(self, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+        logger.info("---NAVIGATE BACK---")
         if self.sync_browser is None:
             raise ValueError(f"Synchronous browser not provided to {self.name}")
         page = get_current_page(self.sync_browser)
@@ -268,7 +269,8 @@ class NavigateBackTool(BaseBrowserTool):
         else:
             return "Невозможно вернуться назад; нет предыдущей страницы в истории"
 
-    async def _arun(self, run_manager: Optional[AsyncCallbackManagerForToolRun] = None,) -> str:
+    async def _arun(self, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+        logger.info("---NAVIGATE BACK---")
         if self.async_browser is None:
             raise ValueError(f"Asynchronous browser not provided to {self.name}")
         page = await aget_current_page(self.async_browser)
