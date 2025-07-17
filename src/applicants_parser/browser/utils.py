@@ -1,78 +1,137 @@
-import re
+from __future__ import annotations
 
-from bs4 import BeautifulSoup, Comment, Doctype
+from typing import TYPE_CHECKING, Optional, Sequence
 
-MAX_LENGTH = 20_000
+if TYPE_CHECKING:
+    from playwright.async_api import Browser as AsyncBrowser
+    from playwright.async_api import Page as AsyncPage
+    from playwright.sync_api import Browser as SyncBrowser
+    from playwright.sync_api import Page as SyncPage
 
-UNUSEFUL_TAGS: list[str] = ["script", "style", "noscript", "meta", "link", "head"]
-TABLE_TAGS: list[str] = ["table", "tr", "td", "th"]
+from ..utils import run_async
 
-
-def clean_text(text: str) -> str:
-    """Отчищает текст от лишних пробелов и отступов."""
-    text = re.sub(r"\s+", " ", text)
-    text = text.strip()
-    return text
+ATTRIBUTE = "innerText"
 
 
-def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:
+async def aget_current_page(browser: AsyncBrowser) -> AsyncPage:
     """
-    Отчищает HTML код от лишних тегов, скриптов и прочего ненужного контента
+    Асинхронно получает текущую страницу браузера.
 
-    :param html: HTML код страницы
-    :param max_length: Максимальная длина отчищенного кода
+    :param browser:
+    :return: Текущая страница браузера.
     """
-    soup = BeautifulSoup(html, "html.parser")
-    for element in soup(UNUSEFUL_TAGS):
-        element.decompose()
-    for comment in soup.find_all(string=lambda text: isinstance(text, (Comment, Doctype))):
-        comment.extract()
-    for tag in soup.find_all(True):
-        if not tag.get_text(strip=True) and not tag.attrs:
-            tag.decompose()
-            continue
+    if not browser.contexts:
+        context = await browser.new_context()
+        return await context.new_page()
+    context = browser.contexts[0]
+    if not context.pages:
+        return await context.new_page()
+    return context.pages[-1]
 
-        attrs_to_keep: dict[str, str] = {}
-        if tag.name == "a":
-            if "href" in tag.attrs:
-                attrs_to_keep["href"] = tag["href"]
-        elif tag.name == "img":
-            attrs_to_keep["src"] = tag.get("src", "")
-            if "alt" in tag.attrs:
-                attrs_to_keep["alt"] = tag["alt"]
-        elif tag.name in TABLE_TAGS:
-            pass
-        else:
-            if "class" in tag.attrs:
-                attrs_to_keep["class"] = tag["class"]
-            if "id" in tag.attrs:
-                attrs_to_keep["id"] = tag["id"]
 
-        tag.attrs = attrs_to_keep
+def get_current_page(browser: SyncBrowser) -> SyncPage:
+    """
+    Получает текущую страницу браузера.
 
-        if tag.string:
-            cleaned = clean_text(tag.string)
-            if cleaned:
-                tag.string = cleaned
+    :param browser: Синхронный Playwright браузер.
+    :return Текущая страница браузера.
+    """
+    if not browser.contexts:
+        context = browser.new_context()
+        return context.new_page()
+    context = browser.contexts[0]
+    if not context.pages:
+        return context.new_page()
+    return context.pages[-1]
+
+
+def create_async_playwright_browser(
+        headless: bool = False,
+        args: Optional[list[str]] = None
+) -> AsyncBrowser:
+    """
+    Фабрика для создания асинхронного Playwright браузера.
+
+    :param headless: Запускать ли браузер в headless режиме, по умолчанию False.
+    :param args: Аргументы дял передачи в браузер chromium.
+    :return: AsyncBrowser асинхронный Playwright браузер.
+    """
+    from playwright.async_api import async_playwright
+
+    browser = run_async(async_playwright().start())
+    return run_async(browser.chromium.launch(headless=headless, args=args))
+
+
+def create_sync_playwright_browser(
+        headless: bool = False,
+        args: Optional[list[str]] = None
+) -> SyncBrowser:
+    """
+    Фабрика для создания синхронного Playwright браузера.
+
+    :param headless: Запускать ли браузер в headless режиме, по умолчанию False.
+    :param args: Аргументы дял передачи в браузер chromium.
+    :return: SyncBrowser синхронный Playwright браузер.
+    """
+    from playwright.sync_api import sync_playwright
+
+    browser = sync_playwright().start()
+    return browser.chromium.launch(headless=headless, args=args)
+
+
+async def aget_elements(
+        page: AsyncPage,
+        css_selector: str,
+        attributes: Sequence[str]
+) -> list[dict[str, str]]:
+    """
+    Асинхронно получает элементы на странице по заданному CSS селектору.
+
+    :param page: Текущая страница.
+    :param css_selector: CSS селектор для поиска.
+    :param attributes: Набора атрибутов, которые нужно получить.
+    :return: Список найденных элементов.
+    """
+    elements = await page.query_selector_all(css_selector)
+    results: list[dict[str, str]] = []
+    for element in elements:
+        result: dict[str, str] = {}
+        for attribute in attributes:
+            if attribute == ATTRIBUTE:
+                value = await element.inner_text()
             else:
-                tag.decompose()
+                value = await element.get_attribute(attribute)
+            if value is not None and value.strip() != "":
+                result[attribute] = value
+        if result:
+            results.append(result)
+    return results
 
-    compact_html: list[str] = []
-    for line in soup.prettify().split('\n'):
-        line = line.strip()
-        if line:
-            line = re.sub(r'^\s{2,}', '  ', line)
-            compact_html.append(line)
 
-    result = "\n".join(compact_html)
-    result = re.sub(r">\s+<", "><", result)
-    result = re.sub(r"\n{3,}", "\n\n", result)
+def get_elements(
+        page: SyncPage,
+        css_selector: str,
+        attributes: Sequence[str]
+) -> list[dict[str, str]]:
+    """
+        Синхронно получает элементы на странице по заданному CSS селектору.
 
-    if len(result) > max_length:
-        result = result[:max_length]
-        last_tag_pos = result.rfind(">")
-        if last_tag_pos != -1:
-            result = result[:last_tag_pos + 1]
-        result += "\n<!-- CONTENT TRUNCATED -->"
-
-    return result
+        :param page: Текущая страница.
+        :param css_selector: CSS селектор для поиска.
+        :param attributes: Набора атрибутов, которые нужно получить.
+        :return: Список найденных элементов.
+        """
+    elements = page.query_selector_all(css_selector)
+    results: list[dict[str, str]] = []
+    for element in elements:
+        result: dict[str, str] = {}
+        for attribute in attributes:
+            if attribute == ATTRIBUTE:
+                value = element.inner_text()
+            else:
+                value = element.get_attribute(attribute)
+            if value is not None and value.strip() != "":
+                result[attribute] = value
+        if result:
+            results.append(result)
+    return results

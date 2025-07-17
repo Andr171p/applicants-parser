@@ -1,194 +1,282 @@
-from typing import Optional, Literal
+from __future__ import annotations
 
-import asyncio
+from typing import Optional, Sequence
+
+import json
 import logging
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, field_validator
 
-from langchain_core.tools.base import ArgsSchema
-from langchain_core.tools import BaseTool, ToolException
-from langchain_core.language_models import BaseChatModel
+from langchain_core.tools import ArgsSchema
+from langchain_core.callbacks import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
 
-from ..browser import BrowserState, clean_html
-
-from .utils import create_structured_output_llm_chain
-from .prompts import SEARCH_ELEMENT_PROMPT
-
-TIMEOUT = 1
+from ..browser.tool import BaseBrowserTool
+from ..browser.helpers import clean_html
+from ..browser.utils import *
 
 logger = logging.getLogger(__name__)
 
-
-class OpenURLArgsSchema(BaseModel):
-    url: str = Field(description="URL сайта или страницы.")
-
-
-class OpenURLTool(BaseTool):
-    name: str = "OpenURL"
-    description: str = "Открывает сайт или ссылку по URL и получает её HTML разметку."
-    args_schema: Optional[ArgsSchema] = OpenURLArgsSchema
-
-    def __init__(self, browser_state: BrowserState, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._browser_state = browser_state
-
-    def _run(self, url: str) -> str:
-        raise NotImplementedError
-
-    async def _arun(self, url: str) -> str:
-        logger.info("---OPEN URL %s---", url)
-        await self._browser_state.page.goto(url)
-        await asyncio.sleep(TIMEOUT)
-        self._browser_state.url = url
-        page_source = await self._browser_state.page.content()
-        self._browser_state.page_source = page_source
-        return clean_html(page_source)
+TIMEOUT = 1_000
+PROTOCOLS: tuple[str, str] = ("http", "https")
 
 
-class NavigationArgsSchema(BaseModel):
-    direction: Literal["back", "forward"] = Field(
-        description="'back' - предыдущая страница, 'forward' - следующая страница."
-    )
+class ClickArgsSchema(BaseModel):
+    css_selector: str = Field(..., description="CSS селектор элемента на который нужно нажать.")
 
 
-class NavigationTool(BaseTool):
-    name: str = "Navigation"
-    description: str = "Навигация между страницами в истории браузера."
-    args_schema: Optional[ArgsSchema] = NavigationArgsSchema
+class ClickTool(BaseBrowserTool):
+    name: str = "click_element"
+    description: str = "Нажимает кнопку на веб-странице по CSS-селектору."
+    args_schema: Optional[ArgsSchema] = ClickArgsSchema
 
-    def __init__(self, browser_state: BrowserState, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._browser_state = browser_state
+    visible_only: bool = True  # True для нажатия только видимых элементов, False для всех остальных.
+    strict_mode: bool = False  # Строгий режим, требует нахождения только одного CSS селектора на странице.
+    timeout: float = TIMEOUT   # Время для ожидания загрузки элемента.
 
-    def _run(self, direction: Literal["back", "forward"]) -> str:
-        raise NotImplementedError
+    def _css_selector_effective(self, css_selector: str) -> str:
+        if self.visible_only:
+            return css_selector
+        return f"{css_selector} >> visible=1"
 
-    async def _arun(self, direction: Literal["back", "forward"]) -> str:
-        logger.info("---NAVIGATE %s---", direction.upper())
-        if direction == "back":
-            await self._browser_state.page.go_back()
-        elif direction == "forward":
-            await self._browser_state.page.go_forward()
-        else:
-            raise ToolException(f"Unsupported direction {direction}")
-        await self._browser_state.page.wait_for_load_state()
-        page_source = await self.browser_state.page.content()
-        self._browser_state.page_source = page_source
-        return clean_html(page_source)
+    def _run(
+            self,
+            css_selector: str,
+            run_manager: Optional[CallbackManagerForToolRun] = None
+    ) -> str:
+        logger.info("---CLICK ELEMENT---")
 
+        from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-class ClickButtonArgsSchema(BaseModel):
-    css_selector: Optional[str] = Field(description="CSS селектор.")
-    button_text: Optional[str] = Field(description="Текст кнопки.")
-
-
-class ClickButtonTool(BaseTool):
-    name: str = "ClickButton"
-    description: str = """Нажимает кнопку на веб-странице по CSS-селектору или тексту кнопки.
-        Возвращает HTML новой страницы после клика."""
-    args_schema: Optional[ArgsSchema] = ClickButtonArgsSchema
-
-    def __init__(self, browser_state: BrowserState, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._browser_state = browser_state
-
-    def _run(self, css_selector: Optional[str] = None, button_text: Optional[str] = None) -> str:
-        raise NotImplementedError
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        css_selector_effective = self._css_selector_effective(css_selector)
+        try:
+            page.click(css_selector_effective, strict=self.strict_mode, timeout=self.timeout)
+        except PlaywrightTimeoutError:
+            return f"Не получилось нажать на элемент: '{css_selector}'"
+        return f"Нажат элемент: '{css_selector}'"
 
     async def _arun(
             self,
-            css_selector: Optional[str] = None,
-            button_text: Optional[str] = None
+            css_selector: str,
+            run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
-        logger.info("---CLICK BUTTON---")
+        logger.info("---CLICK ELEMENT---")
+
+        from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        css_selector_effective = self._selector_effective(css_selector)
         try:
-            if css_selector:
-                button = self._browser_state.page.locator(css_selector)
-            elif button_text:
-                button = self._browser_state.page.get_by_text(button_text)
-            else:
-                raise ValueError("CSS selector or button text must be provided")
-            await button.click(timeout=TIMEOUT * 1000)
-            await self._browser_state.page.wait_for_load_state("networkidle")
-            page_source = await self._browser_state.page.content()
-            return clean_html(page_source)
-        except Exception as e:
-            raise ToolException(f"Ошибка при нажатии кнопки: {e}") from e
+            await page.click(css_selector_effective, strict=self.strict_mode, timeout=self.timeout)
+        except PlaywrightTimeoutError:
+            return f"Не получилось нажать на элемент: '{css_selector}'"
+        return f"Нажат элемент: '{css_selector}'"
 
 
-class ExtractTextArgsSchema(BaseModel):
-    css_selector: str = Field(description="CSS селектор элемента.")
+class CurrentURLTool(BaseBrowserTool):
+    name: str = "current_url"
+    description: str = "Получает URL адрес текущей страницы."
+
+    def _run(
+            self,
+            run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        logger.info("---GET CURRENT PAGE URL---")
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        return page.url
+
+    async def _arun(
+            self,
+            run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        logger.info("---GET CURRENT PAGE URL---")
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        return page.url
 
 
-class ExtractTextTool(BaseTool):
-    name: str = "ExtractText"
-    description: str = "Получение текста элемента по CSS селектору элемента."
-    args_schema: Optional[ArgsSchema] = ExtractTextArgsSchema
+class ExtractTextTool(BaseBrowserTool):
+    name: str = "extract_text"
+    description: str = "Извлекает весь текст с текущей страницы."
 
-    def __init__(self, browser_state: BrowserState, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._browser_state = browser_state
+    @model_validator(mode="before")
+    def check_bs4_importing(self) -> ExtractTextTool:
+        """Проверяет установлен ли bs4"""
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            raise ImportError(
+                "The 'beautifulsoup4' package is required to use this tool."
+                " Please install it with 'pip install beautifulsoup4'."
+            )
+        return self
 
-    def _run(self, css_selector: str) -> str:
-        raise NotImplementedError
-
-    async def _arun(self, css_selector: str) -> str:
+    def _run(self, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
         logger.info("---EXTRACT TEXT---")
-        return self._browser_state.page.inner_text(css_selector)
+
+        from bs4 import BeautifulSoup
+
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        html_content = page.content()
+        soup = BeautifulSoup(html_content, "lxml")
+        return " ".join(text for text in soup.stripped_strings)
+
+    async def _arun(self, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+        logger.info("---EXTRACT TEXT---")
+
+        from bs4 import BeautifulSoup
+
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        html_content = await page.content()
+        soup = BeautifulSoup(html_content, "lxml")
+        return " ".join(text for text in soup.stripped_strings)
 
 
-class Element(BaseModel):
-    css_selector: str = Field(description="CSS селектор элемента")
-    type: str = Field(description="Тип элемента")
-    text: Optional[str] = Field(description="Текст элемента")
+class ExtractHTMLTool(BaseBrowserTool):
+    name: str = "extract_html"
+    description = "Извлекает HTML код страницы."
+
+    def _run(self, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+        logger.info("---EXTRACT HTML---")
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        html_content = page.content()
+        return clean_html(html_content)
+
+    async def _arun(self, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+        logger.info("---EXTRACT HTML---")
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        html_content = await page.content()
+        return clean_html(html_content)
 
 
-class SearchElementArgsSchema(BaseModel):
-    description: str = Field(description="Описание элемента")
+class RetrieveElementsArgsSchema(BaseModel):
+    css_selector: str = Field(
+        ..., description="CSS селектор, например: '*', 'div', 'p', 'a', #id, .classname"
+    )
+    attributes: list[str] = Field(
+        default_factory=lambda: ["innerText"],
+        description="Набора атрибутов, которые необходимо получить для каждого элемента."
+    )
 
 
-class SearchElementTool(BaseTool):
-    name: str = "SearchElement"
-    description: str = "Находит элемент по его семантическому описанию"
-    args_schema: Optional[ArgsSchema] = SearchElementArgsSchema
+class RetrieveElementsTool(BaseBrowserTool):
+    name: str = "retrieve_elements"
+    description: str = "Получает элементы на текущей станице, соответствующие заданному CSS селектору."
+    args_schema: Optional[ArgsSchema] = RetrieveElementsArgsSchema
 
-    def __init__(self, browser_state: BrowserState, model: BaseChatModel, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._browser_state = browser_state
-        self._llm_chain = create_structured_output_llm_chain(
-            output_schema=Element,
-            prompt_template=SEARCH_ELEMENT_PROMPT,
-            model=model
-        )
+    def _run(
+            self,
+            css_selector: str,
+            attributes: Sequence[str] = ATTRIBUTE,
+            run_manager: Optional[CallbackManagerForToolRun] = None
+    ) -> str:
+        logger.info("---RETRIEVE ELEMENTS---")
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        results = get_elements(page, css_selector, attributes)
+        return json.dumps(results, ensure_ascii=False)
 
-    def _run(self, description: str) -> dict[str, str]:
-        raise NotImplementedError
-
-    async def _arun(self, description: str) -> dict[str, str]:
-        logger.info("---SEARCH ELEMENT---")
-        page_source = self._browser_state.page_source
-        cleaned_page_source = clean_html(page_source)
-        element = await self._llm_chain.ainvoke({
-            "description": description, "page_source": cleaned_page_source
-        })
-        return element.model_dump()
-
-
-class DownloadFileToolArgsSchema(BaseModel):
-    css_selector: str = Field(description="CSS селектор элемента с файлом (ссылка или кнопка загрузки)")
+    async def _arun(
+            self,
+            css_selector: str,
+            attributes: Sequence[str] = ATTRIBUTE,
+            run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    ) -> str:
+        logger.info("---RETRIEVE ELEMENTS---")
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        results = await aget_elements(page, css_selector, attributes)
+        return json.dumps(results, ensure_ascii=False)
 
 
-class DownloadFileTool(BaseTool):
-    name: str = "DownloadFile"
-    description: str = ""
-    args_schema: Optional[ArgsSchema] = DownloadFileToolArgsSchema
+class NavigationArgsSchema(BaseModel):
+    url: str = Field(..., description="URL по которому нужно перейти.")
 
-    def __init__(self, browser_state: BrowserState, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._browser_state = browser_state
+    @field_validator("url", mode="before")
+    def validate_url(cls, url: str) -> str:
+        """Проверяет валиден ли URL"""
+        parsed_url = urlparse(url)
+        if parsed_url.scheme not in PROTOCOLS:
+            raise ValueError(f"URL scheme must be {PROTOCOLS}")
+        return url
 
-    def _run(self, css_selector: str) -> str:
-        raise NotImplementedError("This tool supports only async calling")
 
-    async def _arun(self, css_selector: str) -> str:
-        ...
+class NavigationTool(BaseBrowserTool):
+    name: str = "navigation"
+    description: str = "Переходит по указанному URL"
+    args_schema: Optional[ArgsSchema] = NavigationArgsSchema
+
+    def _run(
+            self,
+            url: str,
+            run_manager: Optional[CallbackManagerForToolRun] = None
+    ) -> str:
+        logger.info(f"---NAVIGATE TO {url}---")
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        response = page.goto(url)
+        status = response.status if response else "unknown"
+        return f"Переход по {url}, status code: {status}"
+
+    async def _arun(
+            self,
+            url: str,
+            run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    ) -> str:
+        logger.info(f"---NAVIGATE TO {url}---")
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        response = await page.goto(url)
+        status = response.status if response else "unknown"
+        return f"Переход по {url}, status code: {status}"
+
+
+class NavigateBackTool(BaseBrowserTool):
+    name: str = "navigate_back"
+    description: str = "Переходит на предыдущую web-страницу в истории браузера."
+
+    def _run(self, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+        if self.sync_browser is None:
+            raise ValueError(f"Synchronous browser not provided to {self.name}")
+        page = get_current_page(self.sync_browser)
+        response = page.go_back()
+        if response:
+            return (
+                f"Переход на предыдущую страницу по URL адресу: '{response.url}'."
+                f" Status code: {response.status}"
+            )
+        else:
+            return "Невозможно вернуться назад; нет предыдущей страницы в истории"
+
+    async def _arun(self, run_manager: Optional[AsyncCallbackManagerForToolRun] = None,) -> str:
+        if self.async_browser is None:
+            raise ValueError(f"Asynchronous browser not provided to {self.name}")
+        page = await aget_current_page(self.async_browser)
+        response = await page.go_back()
+        if response:
+            return (
+                f"Переход на предыдущую страницу по URL адресу: '{response.url}'."
+                f" Status code: {response.status}"
+            )
+        else:
+            return "Невозможно вернуться назад; нет предыдущей страницы в истории"
