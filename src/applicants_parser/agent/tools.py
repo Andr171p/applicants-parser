@@ -175,6 +175,10 @@ class RetrieveElementsArgsSchema(BaseModel):
     )
 
 
+class ExtractHyperLinksTool(BaseBrowserTool):
+    ...
+
+
 class RetrieveElementsTool(BaseBrowserTool):
     name: str = "retrieve_elements"
     description: str = "Получает элементы на текущей станице, соответствующие заданному CSS селектору."
