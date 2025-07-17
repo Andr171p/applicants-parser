@@ -6,7 +6,6 @@ requires-python = ">=3.13"
 dependencies = [
     "asyncpg>=0.30.0",
     "browser-use>=0.5.3",
-    "faststream[kafka]>=0.5.47",
     "langchain>=0.3.26",
     "langchain-community>=0.3.27",
     "langchain-gigachat>=0.3.11",
