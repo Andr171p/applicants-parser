@@ -14,8 +14,8 @@ from langchain_core.tools import BaseTool
 class BaseBrowserTool(BaseTool):
     """Базовый класс для инструментов автоматизации браузера"""
 
-    sync_browser: Optional["SyncBrowser"] = None
-    async_browser: Optional["AsyncBrowser"] = None
+    sync_browser: Optional[SyncBrowser] = None
+    async_browser: Optional[AsyncBrowser] = None
 
     @model_validator(mode="before")
     def validate_browser_provided(self) -> BaseBrowserTool:
@@ -27,14 +27,16 @@ class BaseBrowserTool(BaseTool):
     @classmethod
     def from_browser(
             cls,
-            sync_browser: Optional["SyncBrowser"] = None,
-            async_browser: Optional["AsyncBrowser"] = None
+            sync_browser: Optional[SyncBrowser] = None,
+            async_browser: Optional[AsyncBrowser] = None
     ) -> BaseBrowserTool:
-        """Инициализация инструмента через уже готовый браузер"""
+        """Инициализация инструмента через уже готовый браузер."""
         return cls(sync_browser=sync_browser, async_browser=async_browser)
 
     def _run(self, *args: Any, **kwargs: Any) -> Any:
+        """Синхронный вызов инструмента."""
         raise NotImplementedError
 
     async def _arun(self, *args: Any, **kwargs: Any) -> Any:
+        """Асинхронный вызов инструмента."""
         raise NotImplementedError
