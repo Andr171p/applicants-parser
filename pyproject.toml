@@ -14,3 +14,10 @@ dependencies = [
     "selenium>=4.34.2",
     "sqlalchemy>=2.0.41",
 ]
+# -- MyPy --
+[tool.mypy]
+ignore_missing_imports = true
+exclude = [
+    "__samples__",
+    ".venv"
+]
