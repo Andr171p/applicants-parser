@@ -6,8 +6,6 @@ requires-python = ">=3.13"
 dependencies = [
     "asyncpg>=0.30.0",
     "browser-use>=0.5.3",
-    "dishka>=1.6.0",
-    "faststream[kafka]>=0.5.47",
     "langchain>=0.3.26",
     "langchain-community>=0.3.27",
     "langchain-gigachat>=0.3.11",
@@ -17,4 +15,11 @@ dependencies = [
     "ruff>=0.12.4",
     "selenium>=4.34.2",
     "sqlalchemy>=2.0.41",
+]
+# -- MyPy --
+[tool.mypy]
+ignore_missing_imports = true
+exclude = [
+    "__samples__",
+    ".venv"
 ]
