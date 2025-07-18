@@ -9,5 +9,7 @@ class GigaChatModel(StrEnum):
 
 MAX_RECURSION_LIMIT = 50  # Максимальный лимит рекурсивных вызовов AI агента.
 
-# URL адрес для поиска университетов на госуслугах.
-GOSUSLUGI_URL = "https://www.gosuslugi.ru/vuznavigator/universities?query="
+# Базовый URL адрес Госуслуг.
+GOSUSLUGI_URL = "https://www.gosuslugi.ru"
+# URL адрес для поиска университетов на Госуслугах.
+GOSUSLUGI_SEARCH_URL = "https://www.gosuslugi.ru/vuznavigator/universities?query="
