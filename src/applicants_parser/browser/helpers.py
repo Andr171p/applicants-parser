@@ -22,7 +22,7 @@ def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:
     :param html: HTML код страницы
     :param max_length: Максимальная длина отчищенного кода
     """
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, "html.gosuslugi")
     for element in soup(UNUSEFUL_TAGS):
         element.decompose()
     for comment in soup.find_all(string=lambda text: isinstance(text, (Comment, Doctype))):
