@@ -1,14 +1,12 @@
-from typing import Union
+from typing import Any
 
 import logging
 
-from pydantic import BaseModel, Field
-
-from langchain_core.tools import BaseTool
 from langchain_core.language_models import BaseChatModel
-
+from langchain_core.tools import BaseTool
 from langgraph.graph.state import END
 from langgraph.prebuilt import create_react_agent
+from pydantic import BaseModel, Field
 
 from .states import PlanState
 from .utils import create_structured_output_llm_chain
@@ -49,7 +47,7 @@ class ExecuteStepNode:
         formatted_plan = "\n".join(f"{i + 1}. {step}" for i, step in enumerate(plan))
         task = plan[len(past_steps) + 1] if not past_steps else plan[len(past_steps)]
         formatted_task = f"""Для этого плана: {formatted_plan}
-        
+
         Тебе нужно выполнить: {task}.
         """
         response = await self.agent.ainvoke({"messages": [("user", formatted_task)]})
@@ -63,9 +61,9 @@ class Response(BaseModel):
 
 class Action(BaseModel):
     """Действие которое необходимо выполнить"""
-    action: Union[Response, Plan] = Field(
+    action: Response | Plan = Field(
         description="""Действие, которое необходимо выполнить. Если ты хочешь ответить пользователю, используй Response. "
-        «Если тебе нужно дополнительно использовать инструменты для получения ответа, используй Plan"""
+        «Если тебе нужно дополнительно использовать инструменты для получения ответа, используй Plan"""  # noqa: E501
     )
 
 
@@ -78,18 +76,16 @@ class ReplanStepsNode:
             prompt_template=""
         )
 
-    async def __call__(self, state: PlanState) -> dict[str, Union[list[str], str]]:
+    async def __call__(self, state: PlanState) -> dict[str, list[str] | str]:
         logger.info("---REPLAN STEPS---")
         output = await self.replanner.ainvoke(state)
         if isinstance(output.action, Response):
             return {"response": output.action.response}
-        else:
-            return {"plan": output.action.steps}
+        return {"plan": output.action.steps}
 
 
-def should_end(state: PlanState) -> str | END:
+def should_end(state: PlanState) -> Any:
     """Узел графа для принятия решения о выборе следующего узла"""
-    if "response" in state and state["response"]:
+    if state.get("response"):
         return END
-    else:
-        return "agent"
+    return "agent"

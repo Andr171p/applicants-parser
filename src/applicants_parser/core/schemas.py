@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from .enums import Source, EducationForm, Submit
+from .enums import EducationForm, Source, Submit
 
 
 class University(BaseModel):

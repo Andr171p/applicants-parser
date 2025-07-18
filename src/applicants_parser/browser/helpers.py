@@ -11,21 +11,22 @@ TABLE_TAGS: list[str] = ["table", "tr", "td", "th"]
 def clean_text(text: str) -> str:
     """Отчищает текст от лишних пробелов и отступов."""
     text = re.sub(r"\s+", " ", text)
-    text = text.strip()
-    return text
+    return text.strip()
 
 
-def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:
+def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:  # noqa: C901
     """
     Отчищает HTML код от лишних тегов, скриптов и прочего ненужного контента
 
     :param html: HTML код страницы
     :param max_length: Максимальная длина отчищенного кода
     """
-    soup = BeautifulSoup(html, "html.gosuslugi")
+    soup = BeautifulSoup(html, "html.parser")
     for element in soup(UNUSEFUL_TAGS):
         element.decompose()
-    for comment in soup.find_all(string=lambda text: isinstance(text, (Comment, Doctype))):
+    for comment in soup.find_all(
+        string=lambda text: isinstance(text, (Comment, Doctype))
+    ):
         comment.extract()
     for tag in soup.find_all(True):
         if not tag.get_text(strip=True) and not tag.attrs:
@@ -58,10 +59,10 @@ def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:
                 tag.decompose()
 
     compact_html: list[str] = []
-    for line in soup.prettify().split('\n'):
-        line = line.strip()
+    for line in soup.prettify().split("\n"):
+        line = line.strip()  # noqa: PLW2901
         if line:
-            line = re.sub(r'^\s{2,}', '  ', line)
+            line = re.sub(r'^\s{2,}', '  ', line)  # noqa: PLW2901
             compact_html.append(line)
 
     result = "\n".join(compact_html)

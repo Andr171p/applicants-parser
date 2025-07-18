@@ -1,11 +1,12 @@
-from typing import TypeVar, Coroutine, Any
+from typing import Any, TypeVar
 
 import asyncio
+from collections.abc import Coroutine
 
 T = TypeVar("T")
 
 
-def run_async(coroutine: Coroutine[Any, Any, T]) -> T:
+def run_async[T](coroutine: Coroutine[Any, Any, T]) -> T:
     """
     Выполняет асинхронный запрос синхронно.
 

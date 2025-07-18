@@ -1,7 +1,7 @@
 from langchain_gigachat import GigaChat
 
-from ..settings import settings
 from ..constants import GigaChatModel
+from ..settings import settings
 
 gigachat_pro = GigaChat(
     credentials=settings.gigachat.api_key,
