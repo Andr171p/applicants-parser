@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from .enums import Source, EducationForm, Submit
 
@@ -12,6 +12,8 @@ class University(BaseModel):
     source: Source  # Источник откуда получен университет
     url: str        # URL университета (источника)
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class Direction(BaseModel):
     """Направление подготовки"""
@@ -22,6 +24,8 @@ class Direction(BaseModel):
     budget_places: int             # Количество бюджетных мест
     total_places: int              # Всего мест
     education_sale: float          # Цена на обучения
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Applicant(BaseModel):
@@ -36,3 +40,5 @@ class Applicant(BaseModel):
     original: bool          # Сдан ли оригинал
     status: str             # Статус заявления
     date: datetime          # Дата подачи заявления
+
+    model_config = ConfigDict(from_attributes=True)
