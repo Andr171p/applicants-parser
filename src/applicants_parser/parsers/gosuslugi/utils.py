@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
@@ -8,10 +8,11 @@ if TYPE_CHECKING:
 import logging
 
 from ...browser.utils import aget_current_page, ascroll_to_click
-from ...core.enums import EducationForm, Source
-from ...core.schemas import Direction, University
+from ...core.enums import EducationForm
+from ...core.schemas import Direction
 from .constants import EDUCATION_LEVEL, GOSUSLUGI_SEARCH_URL, GOSUSLUGI_URL, TIMEOUT
 from .helpers import extract_direction_code
+from .validators import DirectionValidator
 
 TECHNICAL_ERROR = "Техническая ошибка"
 
@@ -52,7 +53,7 @@ async def afilter_directions(
     :param browser: Экземпляр асинхронного Playwright браузера.
     :param education_forms: Список форм обучения по которым выполняется фильтрация.
     :param education_levels: Список уровней образования, например `Бакалавриат`.
-    :return Страница с отфильтрованными направлениями подготовки.
+    :return Список URL адресов отфильтрованных направлений подготовки.
     """
     logger.info("---FILTER DIRECTIONS---")
     page = await aget_current_page(browser)
@@ -76,6 +77,11 @@ async def afilter_directions(
 
 
 async def aget_directions(browser: AsyncBrowser) -> list[str]:
+    """Получает все URL адреса направлений подготовки на текущей странице.
+
+    :param browser: Асинхронный экземпляр Playwright браузера.
+    :return Список URL адресов направлений подготовки.
+    """
     direction_css_selector = "app-education-program-card"
     button_css_selector = "button.white.button:has-text('Посмотреть ещё')"
     page = await aget_current_page(browser)
@@ -99,20 +105,33 @@ async def aget_directions(browser: AsyncBrowser) -> list[str]:
 
 
 async def aparse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
+    params: dict[str, Any] = {}
     page = await aget_current_page(browser)
     await page.goto(url)
     element = await page.query_selector("div.text-center")
     if element is not None and element.inner_text() == TECHNICAL_ERROR:
         await page.go_back()
         return None
-    university_id = url.split("/")[-1]
-    code = extract_direction_code(url)
-    name = await page.text_content(
+    params["university_id"] = url.split("/")[-1]  # noqa: PLC0207
+    params["code"] = extract_direction_code(url)
+    params["name"] = await page.text_content(
         "div.panel-body div.mb-24:nth-child(1) div.text-plain"
     )
-    education_form = await page.text_content(
+    params["education_form"] = await page.text_content(
         "div.panel-body div.mb-24:nth-child(3) div.text-plain"
     )
-    institute = await page.query_selector(
+    params["institute"] = await page.query_selector(
         "div.panel-body div.text-plain.mb-24:has-text('Институт:')"
     )
+    params["budget_places"] = await page.text_content(
+        "xpath=//li[.//div[contains(@class, 'gray') and text()='Основные места']]"
+        "//div[contains(@class, 'bold')]"
+    )
+    params["total_places"] = (
+        await page
+        .text_content("div.header-places div.small-text")
+        .replace(" ", "")
+        .replace("&nbsp;", "")
+    )
+    params["education_price"] = await page.text_content("div.title-h3.mb-8")
+    return DirectionValidator(**params)

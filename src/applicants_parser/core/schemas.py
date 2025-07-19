@@ -24,7 +24,7 @@ class Direction(BaseModel):
     institute: str | None          # Институт
     budget_places: int             # Количество бюджетных мест
     total_places: int              # Всего мест
-    education_sale: float          # Цена на обучения
+    education_price: float         # Цена на обучения
 
     model_config = ConfigDict(from_attributes=True)
 
