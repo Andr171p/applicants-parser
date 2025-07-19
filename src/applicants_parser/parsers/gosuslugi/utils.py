@@ -19,11 +19,11 @@ TECHNICAL_ERROR = "Техническая ошибка"
 logger = logging.getLogger(__name__)
 
 
-async def asearch_universities(browser: AsyncBrowser, query: str) -> list[str]:
+async def asearch_university_urls(browser: AsyncBrowser, query: str) -> list[str]:
     """Выполняет поиск университетов по запросу.
 
     :param browser: Асинхронный Playwright браузер.
-    :param query: Запрос для поиска университета, наприер `МГУ`
+    :param query: Запрос для поиска университета, например `МГУ`
     :return Список найденных URL адресов вузов.
     """
     logger.info("---SEARCH UNIVERSITIES BY QUERY `%s`---", query)
@@ -43,12 +43,12 @@ async def asearch_universities(browser: AsyncBrowser, query: str) -> list[str]:
     return university_urls
 
 
-async def afilter_directions(
+async def afilter_direction_urls(
     browser: AsyncBrowser,
     education_forms: list[EducationForm],
     education_levels: list[EDUCATION_LEVEL],
 ) -> list[str]:
-    """Асинхроно выполняет фильтрацию направлений подготовки вуза.
+    """Асинхронно выполняет фильтрацию направлений подготовки вуза.
 
     :param browser: Экземпляр асинхронного Playwright браузера.
     :param education_forms: Список форм обучения по которым выполняется фильтрация.
@@ -64,19 +64,19 @@ async def afilter_directions(
             f"form[formgroupname='educationForms'] div.text-plain:has-text('{education_form}')"
         )
         await page.click(css_selector)
-        logger.info("---CHOOSEN EDUCATION FORM `%s`---", education_form.upper())
+        logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
     for education_level in education_levels:
         css_selector = (
             f"form[formgroupname='educationLevels'] div.text-plain:has-text('{education_level}')"
         )
         await page.click(css_selector)
-        logger.info("---CHOOSEN EDUCATION LEVEL `%s`", education_level.upper())
+        logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
-    return await aget_directions(browser)
+    return await aget_direction_urls(browser)
 
 
-async def aget_directions(browser: AsyncBrowser) -> list[str]:
+async def aget_direction_urls(browser: AsyncBrowser) -> list[str]:
     """Получает все URL адреса направлений подготовки на текущей странице.
 
     :param browser: Асинхронный экземпляр Playwright браузера.
@@ -105,33 +105,39 @@ async def aget_directions(browser: AsyncBrowser) -> list[str]:
 
 
 async def aparse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
-    params: dict[str, Any] = {}
+    """Асинхронно парсит направление подготовки.
+
+    :param browser: Экземпляр асинхронного Playwright браузера.
+    :param url: URL адрес направления подготовки.
+    :return: Pydantic схема направления подготовки.
+    """
+    direction_kwargs: dict[str, Any] = {}
     page = await aget_current_page(browser)
     await page.goto(url)
     element = await page.query_selector("div.text-center")
     if element is not None and element.inner_text() == TECHNICAL_ERROR:
         await page.go_back()
         return None
-    params["university_id"] = url.split("/")[-1]  # noqa: PLC0207
-    params["code"] = extract_direction_code(url)
-    params["name"] = await page.text_content(
-        "div.panel-body div.mb-24:nth-child(1) div.text-plain"
+    direction_kwargs["university_id"] = url.split("/")[-1]  # noqa: PLC0207
+    direction_kwargs["code"] = extract_direction_code(url)
+    profile_selector = "/html/body/app-root/div[2]/div/app-university-specialty/div/div[4]/app-education-programs/div[2]/app-education-program[1]/lib-expansion-panel/div/button/p/lib-expansion-panel-header/div/div/h4"
+    profile = await page.query_selector(profile_selector)
+    direction_kwargs["name"] = await profile.inner_text()
+    await page.click(profile_selector)
+    education_form = await page.query_selector(
+        "div.small-text.gray:has-text('Форма обучения') + div.text-plain"
     )
-    params["education_form"] = await page.text_content(
-        "div.panel-body div.mb-24:nth-child(3) div.text-plain"
-    )
-    params["institute"] = await page.query_selector(
-        "div.panel-body div.text-plain.mb-24:has-text('Институт:')"
-    )
-    params["budget_places"] = await page.text_content(
+    if education_form:
+        direction_kwargs["education_form"] = await education_form.text_content()
+    institute = await page.query_selector("div.text-plain.mb-24.ng-star-inserted")
+    if institute:
+        direction_kwargs["institute"] = (await institute.text_content()).strip()
+    direction_kwargs["budget_places"] = await page.text_content(
         "xpath=//li[.//div[contains(@class, 'gray') and text()='Основные места']]"
         "//div[contains(@class, 'bold')]"
     )
-    params["total_places"] = (
-        await page
-        .text_content("div.header-places div.small-text")
-        .replace(" ", "")
-        .replace("&nbsp;", "")
-    )
-    params["education_price"] = await page.text_content("div.title-h3.mb-8")
-    return DirectionValidator(**params)
+    total_places = await page.text_content("div.header-places div.small-text")
+    direction_kwargs["total_places"] = total_places.replace(" ", "").replace("&nbsp;", "")
+    direction_kwargs["education_price"] = await page.text_content("div.title-h3.mb-8")
+    print(direction_kwargs)
+    return DirectionValidator(**direction_kwargs)
