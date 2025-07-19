@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from ..utils import run_async
 
 ATTRIBUTE = "innerText"
+TIMEOUT = 2000  # Время в мс
 
 
 async def aget_current_page(browser: AsyncBrowser) -> AsyncPage:
@@ -131,3 +132,18 @@ def get_elements(
         if result:
             results.append(result)
     return results
+
+
+async def ascroll_to_click(page: AsyncPage, css_selector: str) -> bool:
+    """Асинхроно скролит страницу до нужного элемента и нажимает его.
+
+    :param page: Асинхронный экземпляр страницы.
+    :param css_selector: CSS селектор элемента, который нужно найти.
+    :return True если элемент нажат успешно, False если нет.
+    """
+    element = await page.query_selector(css_selector)
+    if not element:
+        return False
+    await element.scroll_into_view_if_needed()
+    await element.click()
+    return True
