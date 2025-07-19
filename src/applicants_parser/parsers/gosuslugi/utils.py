@@ -8,8 +8,12 @@ if TYPE_CHECKING:
 import logging
 
 from ...browser.utils import aget_current_page, ascroll_to_click
-from ...core.schemas import EducationForm
+from ...core.enums import EducationForm, Source
+from ...core.schemas import Direction, University
 from .constants import EDUCATION_LEVEL, GOSUSLUGI_SEARCH_URL, GOSUSLUGI_URL, TIMEOUT
+from .helpers import extract_direction_code
+
+TECHNICAL_ERROR = "Техническая ошибка"
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +46,7 @@ async def afilter_directions(
     browser: AsyncBrowser,
     education_forms: list[EducationForm],
     education_levels: list[EDUCATION_LEVEL],
-) -> None:
+) -> list[str]:
     """Асинхроно выполняет фильтрацию направлений подготовки вуза.
 
     :param browser: Экземпляр асинхронного Playwright браузера.
@@ -68,6 +72,7 @@ async def afilter_directions(
         logger.info("---CHOOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
+    return await aget_directions(browser)
 
 
 async def aget_directions(browser: AsyncBrowser) -> list[str]:
@@ -91,3 +96,23 @@ async def aget_directions(browser: AsyncBrowser) -> list[str]:
                 direction_url = f"{GOSUSLUGI_URL}{link_href}"
                 direction_urls.append(direction_url)
     return direction_urls
+
+
+async def aparse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
+    page = await aget_current_page(browser)
+    await page.goto(url)
+    element = await page.query_selector("div.text-center")
+    if element is not None and element.inner_text() == TECHNICAL_ERROR:
+        await page.go_back()
+        return None
+    university_id = url.split("/")[-1]
+    code = extract_direction_code(url)
+    name = await page.text_content(
+        "div.panel-body div.mb-24:nth-child(1) div.text-plain"
+    )
+    education_form = await page.text_content(
+        "div.panel-body div.mb-24:nth-child(3) div.text-plain"
+    )
+    institute = await page.query_selector(
+        "div.panel-body div.text-plain.mb-24:has-text('Институт:')"
+    )
