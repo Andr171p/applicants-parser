@@ -6,12 +6,14 @@ if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
 
 import logging
+from pathlib import Path
 
 from ...browser.utils import aget_current_page, ascroll_to_click
 from ...core.enums import EducationForm
 from ...core.schemas import Direction
 from .constants import (
     BUDGET_PLACES_XPATH,
+    DOWNLOAD_AS_TABLE_SELECTOR,
     EDUCATION_FORM_FILTER_SELECTOR,
     EDUCATION_FORM_SELECTOR,
     EDUCATION_LEVEL,
@@ -23,7 +25,9 @@ from .constants import (
     GOSUSLUGI_SEARCH_URL,
     GOSUSLUGI_URL,
     INSTITUTE_SELECTOR,
+    LIST_OF_APPLICANTS_SELECTOR,
     ORGANIZATION_SELECTOR,
+    RECEPTIONS_SELECTOR,
     SEE_MORE_BUTTON_SELECTOR,
     TECHNICAL_ERROR,
     TIMEOUT,
@@ -142,3 +146,34 @@ async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
     direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
     direction_kwargs["education_price"] = await page.text_conten(EDUCATION_PRICE_SELECTOR)
     return DirectionValidator(**direction_kwargs)
+
+
+async def save_applicants(browser: AsyncBrowser, dir_path: str | Path) -> None:
+    """Асинхронно сохраняет списки подавших документы в excel формате.
+
+    :param browser: Асинхронный Playwright браузер.
+    :param dir_path: Путь до директории в которую нужно сохранить конкурсный список.
+    """
+    logger.info("---SAVE APPLICANTS---")
+    page = await aget_current_page(browser)
+    await page.wait_for_selector(LIST_OF_APPLICANTS_SELECTOR, timeout=TIMEOUT)
+    list_of_applicants = await page.query_selector(LIST_OF_APPLICANTS_SELECTOR)
+    await list_of_applicants.click()
+    await page.wait_for_selector(RECEPTIONS_SELECTOR, timeout=TIMEOUT)
+    receptions = await page.query_selector_all(f"{RECEPTIONS_SELECTOR} li.list-divider")
+    applicant_list_urls: list[str] = []
+    for reception in receptions:
+        link = await reception.query_selector("a.link-plain")
+        if link:
+            link_href = await link.get_attribute("href")
+            applicant_list_urls.append(f"{GOSUSLUGI_URL}{link_href}")
+    logger.info("---FOUND %s APPLICANT LISTS---", len(applicant_list_urls))
+    for applicant_list_url in applicant_list_urls:
+        await page.goto(applicant_list_url)
+        page.wait_for_selector(DOWNLOAD_AS_TABLE_SELECTOR, timeout=TIMEOUT * 10)
+        async with page.expect_download() as download:
+            await page.click(DOWNLOAD_AS_TABLE_SELECTOR)
+        downloaded = await download.value
+        await downloaded.save_as(dir_path)
+        logger.info("---SUCCESSFULLY SAVED APPLICANTS LIST---")
+        await page.go_back()

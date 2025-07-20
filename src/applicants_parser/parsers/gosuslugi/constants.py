@@ -42,3 +42,6 @@ BUDGET_PLACES_XPATH = (
 )
 TOTAL_PLACES_SELECTOR = "div.header-places div.small-text"
 EDUCATION_PRICE_SELECTOR = "div.title-h3.mb-8"
+LIST_OF_APPLICANTS_SELECTOR = "a:has-text('Списки подавших документы')"
+RECEPTIONS_SELECTOR = "ul.shadow-block"
+DOWNLOAD_AS_TABLE_SELECTOR = "button:has-text('Скачать в виде таблицы')"
