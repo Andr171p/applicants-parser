@@ -79,10 +79,15 @@ async def filter_directions(
     button = await page.wait_for_selector(FILTER_BUTTON_SELECTOR, timeout=TIMEOUT * 2000)
     await button.click()
     for education_form in education_forms:
-        await page.click(EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form))
+        await page.click(
+            EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form)
+        )
         logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
     for education_level in education_levels:
-        await page.click(EDUCATION_LEVEL_FILTER_SELECTOR.format(education_level=education_level))
+        await page.click(
+            EDUCATION_LEVEL_FILTER_SELECTOR.format(
+                education_level=education_level)
+        )
         logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
@@ -95,23 +100,26 @@ async def parse_direction_urls(browser: AsyncBrowser) -> list[str]:
     :param browser: Асинхронный экземпляр Playwright браузера.
     :return Список URL адресов направлений подготовки.
     """
+    logger.info("---PARSE DIRECTION URLS---")
     page = await aget_current_page(browser)
     await page.wait_for_selector(EDUCATION_PROGRAM_SELECTOR)
     while True:
         is_clickable = await ascroll_to_click(page, SEE_MORE_BUTTON_SELECTOR)
         if not is_clickable:
             break
+        logger.info("---SCROLLED FOR MORE DIRECTIONS---")
         await page.wait_for_timeout(TIMEOUT)
         await page.evaluate("window.scrollBy(0, 500)")
     direction_cards = await page.query_selector_all(EDUCATION_PROGRAM_SELECTOR)
     direction_urls: list[str] = []
     for direction_card in direction_cards:
-        link = await direction_card.query_selector(f"{EDUCATION_PROGRAM_SELECTOR}[href]")
+        link = await direction_card.query_selector("a.education-program-card[href]")
         if link:
             link_href = await link.get_attribute("href")
             if link_href:
                 direction_url = f"{GOSUSLUGI_URL}{link_href}"
                 direction_urls.append(direction_url)
+    logger.info("---PARSED %s DIRECTIONS URLS--", len(direction_urls))
     return direction_urls
 
 
@@ -144,7 +152,9 @@ async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
         direction_kwargs["institute"] = (await institute.text_content()).strip()
     direction_kwargs["budget_places"] = await page.text_content(BUDGET_PLACES_XPATH)
     direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
-    direction_kwargs["education_price"] = await page.text_conten(EDUCATION_PRICE_SELECTOR)
+    direction_kwargs["education_price"] = await page.text_content(
+        EDUCATION_PRICE_SELECTOR
+    )
     return DirectionValidator(**direction_kwargs)
 
 
@@ -174,6 +184,6 @@ async def save_applicants(browser: AsyncBrowser, dir_path: str | Path) -> None:
         async with page.expect_download() as download:
             await page.click(DOWNLOAD_AS_TABLE_SELECTOR)
         downloaded = await download.value
-        await downloaded.save_as(dir_path)
+        await downloaded.save_as(f"{dir_path}/{downloaded.suggested_filename}")
         logger.info("---SUCCESSFULLY SAVED APPLICANTS LIST---")
         await page.go_back()
