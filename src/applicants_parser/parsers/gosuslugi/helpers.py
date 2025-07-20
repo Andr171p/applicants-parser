@@ -8,3 +8,6 @@ def extract_direction_code(url: str) -> str:
     parts = url.strip("/").split("/")
     index = parts.index("specialties")
     return parts[index + 1]
+
+
+def handle_technical_error() -> ...: ...

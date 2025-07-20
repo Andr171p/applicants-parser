@@ -3,6 +3,7 @@ preview = true
 exclude = [
     "migration",
     "alembic.ini",
+    "uv.lock",
 ]
 
 [lint]

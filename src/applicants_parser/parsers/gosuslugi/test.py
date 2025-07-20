@@ -22,11 +22,9 @@ from .constants import (
     EDUCATION_PROGRAM_SELECTOR,
     FETCH_PROFILE_SCRIPT,
     FILTER_BUTTON_SELECTOR,
-    GOSUSLUGI_SEARCH_URL,
     GOSUSLUGI_URL,
     INSTITUTE_SELECTOR,
     LIST_OF_APPLICANTS_SELECTOR,
-    ORGANIZATION_SELECTOR,
     RECEPTIONS_SELECTOR,
     SEE_MORE_BUTTON_SELECTOR,
     TECHNICAL_ERROR,
@@ -37,29 +35,6 @@ from .helpers import extract_direction_code
 from .validators import DirectionValidator
 
 logger = logging.getLogger(__name__)
-
-
-async def search_university_urls(browser: AsyncBrowser, query: str) -> list[str]:
-    """Выполняет поиск университетов по запросу.
-
-    :param browser: Асинхронный Playwright браузер.
-    :param query: Запрос для поиска университета, например `МГУ`
-    :return Список найденных URL адресов вузов.
-    """
-    logger.info("---SEARCH UNIVERSITIES BY QUERY `%s`---", query)
-    page = await aget_current_page(browser)
-    url = f"{GOSUSLUGI_SEARCH_URL}{query}"
-    await page.goto(url)
-    await page.wait_for_selector(f"//{ORGANIZATION_SELECTOR}", state="attached")
-    university_cards = await page.query_selector_all(f"xpath=//{ORGANIZATION_SELECTOR}")
-    university_urls: list[str] = []
-    for university_card in university_cards:
-        link = await university_card.query_selector("xpath=.//a")
-        link_href = await link.get_attribute("href") if link else "#"
-        university_url = f"{GOSUSLUGI_URL}{link_href}"
-        university_urls.append(university_url)
-    logger.info("---FOUND %s UNIVERSITIES---", len(university_urls))
-    return university_urls
 
 
 async def filter_directions(

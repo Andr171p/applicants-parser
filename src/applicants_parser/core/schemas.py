@@ -8,7 +8,7 @@ from .enums import EducationForm, Source, Submit
 class University(BaseModel):
     """Университет"""
     id: int         # Уникальный ID университета
-    name: str       # Название университета
+    title: str      # Название университета
     source: Source  # Источник откуда получен университет
     url: str        # URL университета (источника)
 
@@ -19,7 +19,7 @@ class Direction(BaseModel):
     """Направление подготовки"""
     university_id: int             # ID университета
     code: str                      # Код направления подготовки
-    name: str                      # Название направления подготовки
+    title: str                     # Название направления подготовки
     education_form: EducationForm  # Форма обучения
     institute: str | None          # Институт
     budget_places: int             # Количество бюджетных мест
