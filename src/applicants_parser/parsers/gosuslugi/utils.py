@@ -73,10 +73,10 @@ async def filter_directions(
         logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
-    return await get_direction_urls(browser)
+    return await parse_directions_urls(browser)
 
 
-async def get_direction_urls(browser: AsyncBrowser) -> list[str]:
+async def parse_directions_urls(browser: AsyncBrowser) -> list[str]:
     """Получает все URL адреса направлений подготовки на текущей странице.
 
     :param browser: Асинхронный экземпляр Playwright браузера.
@@ -131,7 +131,6 @@ async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
             })
             .filter(Boolean);
     }""")
-    print(profiles)
     direction_kwargs["name"] = profiles[0]
     await page.click("h4.title-h4")
     education_form = await page.query_selector(
@@ -146,8 +145,8 @@ async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
         "xpath=//li[.//div[contains(@class, 'gray') and text()='Основные места']]"
         "//div[contains(@class, 'bold')]"
     )
-    total_places = await page.text_content("div.header-places div.small-text")
-    direction_kwargs["total_places"] = total_places.replace(" ", "").replace("&nbsp;", "")
+    direction_kwargs["total_places"] = await page.text_content(
+        "div.header-places div.small-text"
+    )
     direction_kwargs["education_price"] = await page.text_content("div.title-h3.mb-8")
-    print(direction_kwargs)
     return DirectionValidator(**direction_kwargs)
