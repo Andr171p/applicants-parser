@@ -1,0 +1,6 @@
+
+
+class GosuslugiParser:
+    def __init__(self) -> None: ...
+
+    async def parse(self) -> ...: ...

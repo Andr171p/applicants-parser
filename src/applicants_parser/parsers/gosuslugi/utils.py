@@ -19,7 +19,7 @@ TECHNICAL_ERROR = "Техническая ошибка"
 logger = logging.getLogger(__name__)
 
 
-async def asearch_university_urls(browser: AsyncBrowser, query: str) -> list[str]:
+async def search_universities(browser: AsyncBrowser, query: str) -> list[str]:
     """Выполняет поиск университетов по запросу.
 
     :param browser: Асинхронный Playwright браузер.
@@ -43,7 +43,7 @@ async def asearch_university_urls(browser: AsyncBrowser, query: str) -> list[str
     return university_urls
 
 
-async def afilter_direction_urls(
+async def filter_directions(
     browser: AsyncBrowser,
     education_forms: list[EducationForm],
     education_levels: list[EDUCATION_LEVEL],
@@ -73,10 +73,10 @@ async def afilter_direction_urls(
         logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
-    return await aget_direction_urls(browser)
+    return await get_direction_urls(browser)
 
 
-async def aget_direction_urls(browser: AsyncBrowser) -> list[str]:
+async def get_direction_urls(browser: AsyncBrowser) -> list[str]:
     """Получает все URL адреса направлений подготовки на текущей странице.
 
     :param browser: Асинхронный экземпляр Playwright браузера.
@@ -104,13 +104,14 @@ async def aget_direction_urls(browser: AsyncBrowser) -> list[str]:
     return direction_urls
 
 
-async def aparse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
+async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
     """Асинхронно парсит направление подготовки.
 
     :param browser: Экземпляр асинхронного Playwright браузера.
     :param url: URL адрес направления подготовки.
     :return: Pydantic схема направления подготовки.
     """
+    logger.info("---PARSE DIRECTION %s---", url)
     direction_kwargs: dict[str, Any] = {}
     page = await aget_current_page(browser)
     await page.goto(url)
@@ -118,12 +119,21 @@ async def aparse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
     if element is not None and element.inner_text() == TECHNICAL_ERROR:
         await page.go_back()
         return None
+    await page.wait_for_selector("h4.title-h4")
     direction_kwargs["university_id"] = url.split("/")[-1]  # noqa: PLC0207
     direction_kwargs["code"] = extract_direction_code(url)
-    profile_selector = "/html/body/app-root/div[2]/div/app-university-specialty/div/div[4]/app-education-programs/div[2]/app-education-program[1]/lib-expansion-panel/div/button/p/lib-expansion-panel-header/div/div/h4"
-    profile = await page.query_selector(profile_selector)
-    direction_kwargs["name"] = await profile.inner_text()
-    await page.click(profile_selector)
+    profiles = await page.evaluate("""() => {
+        return Array.from(document.querySelectorAll('lib-expansion-panel'))
+            .map(el => {
+                const root = el.shadowRoot || el;
+                const title = root.querySelector('h4.title-h4');
+                return title ? title.textContent.trim() : null;
+            })
+            .filter(Boolean);
+    }""")
+    print(profiles)
+    direction_kwargs["name"] = profiles[0]
+    await page.click("h4.title-h4")
     education_form = await page.query_selector(
         "div.small-text.gray:has-text('Форма обучения') + div.text-plain"
     )
