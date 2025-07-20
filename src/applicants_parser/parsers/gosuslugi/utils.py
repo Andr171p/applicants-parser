@@ -10,16 +10,32 @@ import logging
 from ...browser.utils import aget_current_page, ascroll_to_click
 from ...core.enums import EducationForm
 from ...core.schemas import Direction
-from .constants import EDUCATION_LEVEL, GOSUSLUGI_SEARCH_URL, GOSUSLUGI_URL, TIMEOUT
+from .constants import (
+    BUDGET_PLACES_XPATH,
+    EDUCATION_FORM_FILTER_SELECTOR,
+    EDUCATION_FORM_SELECTOR,
+    EDUCATION_LEVEL,
+    EDUCATION_LEVEL_FILTER_SELECTOR,
+    EDUCATION_PRICE_SELECTOR,
+    EDUCATION_PROGRAM_SELECTOR,
+    FETCH_PROFILE_SCRIPT,
+    FILTER_BUTTON_SELECTOR,
+    GOSUSLUGI_SEARCH_URL,
+    GOSUSLUGI_URL,
+    INSTITUTE_SELECTOR,
+    ORGANIZATION_SELECTOR,
+    SEE_MORE_BUTTON_SELECTOR,
+    TECHNICAL_ERROR,
+    TIMEOUT,
+    TOTAL_PLACES_SELECTOR,
+)
 from .helpers import extract_direction_code
 from .validators import DirectionValidator
-
-TECHNICAL_ERROR = "Техническая ошибка"
 
 logger = logging.getLogger(__name__)
 
 
-async def search_universities(browser: AsyncBrowser, query: str) -> list[str]:
+async def search_university_urls(browser: AsyncBrowser, query: str) -> list[str]:
     """Выполняет поиск университетов по запросу.
 
     :param browser: Асинхронный Playwright браузер.
@@ -27,12 +43,11 @@ async def search_universities(browser: AsyncBrowser, query: str) -> list[str]:
     :return Список найденных URL адресов вузов.
     """
     logger.info("---SEARCH UNIVERSITIES BY QUERY `%s`---", query)
-    css_selector = "app-organization-card"
     page = await aget_current_page(browser)
     url = f"{GOSUSLUGI_SEARCH_URL}{query}"
     await page.goto(url)
-    await page.wait_for_selector(f"//{css_selector}", state="attached")
-    university_cards = await page.query_selector_all(f"xpath=//{css_selector}")
+    await page.wait_for_selector(f"//{ORGANIZATION_SELECTOR}", state="attached")
+    university_cards = await page.query_selector_all(f"xpath=//{ORGANIZATION_SELECTOR}")
     university_urls: list[str] = []
     for university_card in university_cards:
         link = await university_card.query_selector("xpath=.//a")
@@ -57,45 +72,37 @@ async def filter_directions(
     """
     logger.info("---FILTER DIRECTIONS---")
     page = await aget_current_page(browser)
-    button = await page.wait_for_selector("button.filter-button", timeout=TIMEOUT * 2000)
+    button = await page.wait_for_selector(FILTER_BUTTON_SELECTOR, timeout=TIMEOUT * 2000)
     await button.click()
     for education_form in education_forms:
-        css_selector = (
-            f"form[formgroupname='educationForms'] div.text-plain:has-text('{education_form}')"
-        )
-        await page.click(css_selector)
+        await page.click(EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form))
         logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
     for education_level in education_levels:
-        css_selector = (
-            f"form[formgroupname='educationLevels'] div.text-plain:has-text('{education_level}')"
-        )
-        await page.click(css_selector)
+        await page.click(EDUCATION_LEVEL_FILTER_SELECTOR.format(education_level=education_level))
         logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
-    return await parse_directions_urls(browser)
+    return await parse_direction_urls(browser)
 
 
-async def parse_directions_urls(browser: AsyncBrowser) -> list[str]:
+async def parse_direction_urls(browser: AsyncBrowser) -> list[str]:
     """Получает все URL адреса направлений подготовки на текущей странице.
 
     :param browser: Асинхронный экземпляр Playwright браузера.
     :return Список URL адресов направлений подготовки.
     """
-    direction_css_selector = "app-education-program-card"
-    button_css_selector = "button.white.button:has-text('Посмотреть ещё')"
     page = await aget_current_page(browser)
-    await page.wait_for_selector(direction_css_selector)
+    await page.wait_for_selector(EDUCATION_PROGRAM_SELECTOR)
     while True:
-        is_clickable = await ascroll_to_click(page, button_css_selector)
+        is_clickable = await ascroll_to_click(page, SEE_MORE_BUTTON_SELECTOR)
         if not is_clickable:
             break
         await page.wait_for_timeout(TIMEOUT)
         await page.evaluate("window.scrollBy(0, 500)")
-    direction_cards = await page.query_selector_all(direction_css_selector)
+    direction_cards = await page.query_selector_all(EDUCATION_PROGRAM_SELECTOR)
     direction_urls: list[str] = []
     for direction_card in direction_cards:
-        link = await direction_card.query_selector("a.education-program-card[href]")
+        link = await direction_card.query_selector(f"{EDUCATION_PROGRAM_SELECTOR}[href]")
         if link:
             link_href = await link.get_attribute("href")
             if link_href:
@@ -122,31 +129,16 @@ async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
     await page.wait_for_selector("h4.title-h4")
     direction_kwargs["university_id"] = url.split("/")[-1]  # noqa: PLC0207
     direction_kwargs["code"] = extract_direction_code(url)
-    profiles = await page.evaluate("""() => {
-        return Array.from(document.querySelectorAll('lib-expansion-panel'))
-            .map(el => {
-                const root = el.shadowRoot || el;
-                const title = root.querySelector('h4.title-h4');
-                return title ? title.textContent.trim() : null;
-            })
-            .filter(Boolean);
-    }""")
+    profiles = await page.evaluate(FETCH_PROFILE_SCRIPT)
     direction_kwargs["name"] = profiles[0]
     await page.click("h4.title-h4")
-    education_form = await page.query_selector(
-        "div.small-text.gray:has-text('Форма обучения') + div.text-plain"
-    )
+    education_form = await page.query_selector(EDUCATION_FORM_SELECTOR)
     if education_form:
         direction_kwargs["education_form"] = await education_form.text_content()
-    institute = await page.query_selector("div.text-plain.mb-24.ng-star-inserted")
+    institute = await page.query_selector(INSTITUTE_SELECTOR)
     if institute:
         direction_kwargs["institute"] = (await institute.text_content()).strip()
-    direction_kwargs["budget_places"] = await page.text_content(
-        "xpath=//li[.//div[contains(@class, 'gray') and text()='Основные места']]"
-        "//div[contains(@class, 'bold')]"
-    )
-    direction_kwargs["total_places"] = await page.text_content(
-        "div.header-places div.small-text"
-    )
-    direction_kwargs["education_price"] = await page.text_content("div.title-h3.mb-8")
+    direction_kwargs["budget_places"] = await page.text_content(BUDGET_PLACES_XPATH)
+    direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
+    direction_kwargs["education_price"] = await page.text_conten(EDUCATION_PRICE_SELECTOR)
     return DirectionValidator(**direction_kwargs)
