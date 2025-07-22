@@ -135,7 +135,7 @@ def get_elements(
 
 
 async def ascroll_to_click(page: AsyncPage, css_selector: str) -> bool:
-    """Асинхроно скролит страницу до нужного элемента и нажимает его.
+    """Асинхронно скролит страницу до нужного элемента и нажимает его.
 
     :param page: Асинхронный экземпляр страницы.
     :param css_selector: CSS селектор элемента, который нужно найти.

@@ -1,6 +1,6 @@
 from pydantic import field_validator
 
-from ...core.schemas import Direction
+from src.core.schemas import Direction
 
 
 class DirectionValidator(Direction):

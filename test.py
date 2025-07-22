@@ -3,15 +3,15 @@ import logging
 
 from playwright.async_api import async_playwright
 
-from src.applicants_parser.browser.utils import aget_current_page
-from src.applicants_parser.core.enums import EducationForm
-from src.applicants_parser.parsers.gosuslugi.utils import (
+from src.browser import aget_current_page
+from src.core import EducationForm
+from src.gosuslugi import (
     filter_directions,
     parse_direction,
     save_applicants,
     search_university_urls,
 )
-from src.applicants_parser.settings import ADMISSION_LISTS_DIR
+from src.settings import ADMISSION_LISTS_DIR
 
 
 async def main() -> None:

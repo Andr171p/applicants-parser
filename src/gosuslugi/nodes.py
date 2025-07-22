@@ -8,10 +8,11 @@ if TYPE_CHECKING:
 from abc import ABC, abstractmethod
 import logging
 
-from ...browser.utils import aget_current_page
-from ...core.schemas import University
-from ...core.enums import Source
-from .fsm import UniversityState, AdmissionListState
+from ..settings import ADMISSION_LISTS_DIR
+from ..browser.utils import aget_current_page
+from ..core.schemas import University
+from ..core.enums import Source
+from .states import UniversityState, AdmissionListState
 from .helpers import extract_direction_code
 from .validators import DirectionValidator
 from .utils import parse_direction_urls
@@ -114,7 +115,7 @@ class ParseDirection(BaseNode):
         return {"direction": direction}
 
 
-class DownloadApplicantLists(BaseNode):
+class DownloadApplicants(BaseNode):
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---DOWNLOAD APPLICANTS LISTS---")
         page = await aget_current_page(self.browser)
@@ -137,8 +138,7 @@ class DownloadApplicantLists(BaseNode):
             async with page.expect_download() as download:
                 await page.click(DOWNLOAD_AS_TABLE_SELECTOR)
             download_value = await download.value
-            dir_path = state["dir_path"]
-            admission_list_file = f"{dir_path}/{download_value.suggested_filename}"
+            admission_list_file = f"{ADMISSION_LISTS_DIR}/{download_value.suggested_filename}"
             await download_value.save_as(admission_list_file)
             admission_list_files.append(admission_list_file)
             logger.info("---SUCCESSFULLY SAVED APPLICANTS LIST---")
@@ -149,10 +149,4 @@ class DownloadApplicantLists(BaseNode):
 class ParseApplicants(BaseNode):
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
-        ...
-
-
-class SaveApplicantsLists(BaseNode):
-    async def __call__(self, state: AdmissionListState) -> AdmissionListState:
-        logger.info("---SAVE APPLICANTS LISTS---")
         ...
