@@ -1,30 +1,41 @@
-from dotenv import dotenv_values, find_dotenv
+from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-env_path = find_dotenv()
-
-
-def load_config() -> dict:
-    env_path = find_dotenv(".env")
-
-    if not env_path:
-        env_path = find_dotenv(".test.env")
-
-    return dotenv_values(env_path)
+load_dotenv()
 
 
-config = load_config()
+class GigaChatSettings(BaseSettings):
+    api_key: str = ""
+    scope: str = ""
+
+    model_config = SettingsConfigDict(env_prefix="GIGACHAT_")
 
 
-class Settings:
-    POSTGRES_HOST: str = config["POSTGRES_HOST"]
-    POSTGRES_PORT: str = config["POSTGRES_PORT"]
-    POSTGRES_PASSWORD: str = config["POSTGRES_PASSWORD"]
-    POSTGRES_USER: str = config["POSTGRES_USER"]
-    POSTGRES_DB: str = config["POSTGRES_DB"]
+class SqlSettings(BaseSettings):
+    postgres_host: str = ""
+    postgres_port: int = 5432
+    postgres_password: str = ""
+    postgres_user: str = ""
+    postgres_db: str = ""
+
+    @property
+    def get_db_url(self) -> str:
+        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+
+
+class RabbitSettings(BaseSettings):
+    rabbit_host: str = ""
+    rabbit_port: int = 5672
+
+    @property
+    def get_rabbit_url(self) -> str:
+        return f"amqp://guest:guest@{self.rabbit_host}:{self.rabbit_port}/"
+
+
+class Settings(BaseSettings):
+    gigachat: GigaChatSettings = GigaChatSettings()
+    sql_settings: SqlSettings = SqlSettings()
+    rabbit_settings: RabbitSettings = RabbitSettings()
 
 
 settings = Settings()
-
-
-def get_db_url() -> str:
-    return f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"

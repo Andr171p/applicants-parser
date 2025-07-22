@@ -1,6 +1,7 @@
+from typing import Annotated
+
 import uuid
 from datetime import datetime
-from typing import Annotated
 
 from sqlalchemy import BIGINT, func
 from sqlalchemy.dialects.postgresql import UUID

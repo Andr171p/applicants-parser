@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic",
     "asyncpg>=0.30.0",
     "browser-use>=0.5.3",
+    "faststream[rabbit]",
     "langchain>=0.3.26",
     "langchain-community>=0.3.27",
     "langchain-gigachat>=0.3.11",
@@ -13,15 +15,20 @@ dependencies = [
     "mypy>=1.17.0",
     "playwright>=1.53.0",
     "polars>=1.31.0",
+    "pydantic-settings",
     "python-statemachine>=2.5.0",
     "ruff>=0.12.4",
     "selenium>=4.34.2",
     "sqlalchemy>=2.0.41",
 ]
+
+
 # -- MyPy --
 [tool.mypy]
 ignore_missing_imports = true
 exclude = [
+    "migration",
+    "migrations",
     "__samples__",
     ".venv"
 ]

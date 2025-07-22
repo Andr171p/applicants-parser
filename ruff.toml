@@ -2,8 +2,8 @@ line-length = 99
 preview = true
 exclude = [
     "migration",
+    "migrations",
     "alembic.ini",
-    "uv.lock",
 ]
 
 [lint]
@@ -89,5 +89,6 @@ section-order = [
 
 [lint.isort.sections]
 "typings" = ['typing']
+
 
 
