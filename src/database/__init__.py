@@ -1,5 +1,6 @@
 __all__ = [
     "ApplicantsModel",
+    "Base",
     "DirectionsModel",
     "UniversitysModel",
     "add_all_applicants",
@@ -7,5 +8,6 @@ __all__ = [
     "add_universitys",
 ]
 
+from .database_configs import Base
 from .models import ApplicantsModel, DirectionsModel, UniversitysModel
 from .session import add_all_applicants, add_directions, add_universitys
