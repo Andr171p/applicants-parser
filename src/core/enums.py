@@ -18,7 +18,7 @@ class Submit(StrEnum):
     """Согласие на зачисление"""
     PAPER = "Бумажное"
     ELECTRONIC = "Электронное"
-    NOT_SUBMITTED = "_"
+    NOT_SUBMITTED = "—"
 
 
 class Status(StrEnum):

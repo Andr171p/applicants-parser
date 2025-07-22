@@ -16,6 +16,7 @@ class UniversityState(TypedDict):
 
 
 class AdmissionListState(TypedDict):
+    university_id: int
     direction_url: str
     direction: Direction
     admission_list_files: list[str | Path]

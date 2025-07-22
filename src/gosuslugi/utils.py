@@ -11,6 +11,7 @@ from pathlib import Path
 from src.browser.utils import aget_current_page, ascroll_to_click
 from src.core.enums import EducationForm
 from src.core.schemas import Direction
+
 from .constants import (
     BUDGET_PLACES_XPATH,
     DOWNLOAD_AS_TABLE_SELECTOR,

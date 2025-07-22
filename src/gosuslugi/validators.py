@@ -1,6 +1,42 @@
+from __future__ import annotations
+
+from datetime import datetime
+
 from pydantic import field_validator
 
-from src.core.schemas import Direction
+from ..core.schemas import Applicant, Direction
+from .utils import extract_direction_code
+
+
+class ApplicantValidator(Applicant):
+    @classmethod
+    def from_csv_row(cls, row: dict[str, str | int], **kwargs) -> Applicant:
+        return cls(
+            university_id=kwargs.get("university_id"),
+            direction_code=kwargs.get("direction_code"),
+            id=row["ID участника"],
+            serial_number=row["Порядковый номер"],
+            priority=row["Приоритет конкурса"],
+            submit=row["Подано согласие"],
+            total_points=row["Сумма баллов"],
+            points=row["Баллы за ВИ"],
+            additional_points=row["Баллы за ИД"],
+            status=row["Статус"],
+            original=False,  # For test mode
+            date=row["Дата выбора конкурсной группы по Москве"]
+        )
+
+    @field_validator("direction_code", mode="before")
+    def validate_direction_code(cls, direction_url: str) -> str:
+        return extract_direction_code(direction_url)
+
+    @field_validator("points", mode="before")
+    def validate_points(cls, points: str) -> list[int]:
+        return list(map(int, points.split(" ")))
+
+    @field_validator("date", mode="before")
+    def validate_date(cls, date: str) -> datetime:
+        return datetime.strptime(date, "%d.%m.%Y в %H:%M")
 
 
 class DirectionValidator(Direction):

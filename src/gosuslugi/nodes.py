@@ -1,37 +1,39 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
-from ..settings import ADMISSION_LISTS_DIR
+import polars as pl
+
 from ..browser.utils import aget_current_page
-from ..core.schemas import University
 from ..core.enums import Source
-from .states import UniversityState, AdmissionListState
+from ..core.schemas import Applicant, University
+from ..settings import ADMISSION_LISTS_DIR
+from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT
 from .helpers import extract_direction_code
-from .validators import DirectionValidator
-from .utils import parse_direction_urls
-from .constants import TIMEOUT, TECHNICAL_ERROR, GOSUSLUGI_URL
 from .selectors import (
-    ORGANIZATION_TITLE_SELECTOR,
-    FILTER_BUTTON_SELECTOR,
-    EDUCATION_FORM_FILTER_SELECTOR,
-    EDUCATION_LEVEL_FILTER_SELECTOR,
-    FETCH_PROFILE_SCRIPT,
-    EDUCATION_FORM_SELECTOR,
-    INSTITUTE_SELECTOR,
     BUDGET_PLACES_XPATH,
-    TOTAL_PLACES_SELECTOR,
+    DOWNLOAD_AS_TABLE_SELECTOR,
+    EDUCATION_FORM_FILTER_SELECTOR,
+    EDUCATION_FORM_SELECTOR,
+    EDUCATION_LEVEL_FILTER_SELECTOR,
     EDUCATION_PRICE_SELECTOR,
-    RECEPTIONS_SELECTOR,
+    FETCH_PROFILE_SCRIPT,
+    FILTER_BUTTON_SELECTOR,
+    INSTITUTE_SELECTOR,
     LIST_OF_APPLICANTS_SELECTOR,
-    DOWNLOAD_AS_TABLE_SELECTOR
+    ORGANIZATION_TITLE_SELECTOR,
+    RECEPTIONS_SELECTOR,
+    TOTAL_PLACES_SELECTOR,
 )
+from .states import AdmissionListState, UniversityState
+from .utils import parse_direction_urls
+from .validators import ApplicantValidator, DirectionValidator
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +68,12 @@ class FilterDirections(BaseNode):
         page = await aget_current_page(self.browser)
         button = await page.wait_for_selector(FILTER_BUTTON_SELECTOR, timeout=TIMEOUT)
         await button.click()
-        for education_form in state["education_forms"]:
+        for education_form in state.get("education_forms", []):
             await page.click(
                 EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form)
             )
             logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
-        for education_level in state["education_levels"]:
+        for education_level in state.get("education_levels", []):
             await page.click(
                 EDUCATION_LEVEL_FILTER_SELECTOR.format(
                     education_level=education_level)
@@ -95,7 +97,7 @@ class ParseDirection(BaseNode):
             await page.go_back()
             return None
         await page.wait_for_selector("h4.title-h4")
-        direction_kwargs["university_id"] = url.split("/")[-1]  # noqa: PLC0207
+        direction_kwargs["university_id"] = url.split("/")[-1]
         direction_kwargs["code"] = extract_direction_code(url)
         profiles = await page.evaluate(FETCH_PROFILE_SCRIPT)
         direction_kwargs["name"] = profiles[0]
@@ -149,4 +151,17 @@ class DownloadApplicants(BaseNode):
 class ParseApplicants(BaseNode):
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
-        ...
+        applicants: list[Applicant] = []
+        for admission_list_file in state.get("admission_list_files", []):
+            df = pl.read_csv(admission_list_file)
+            on_reception_applicants = [
+                ApplicantValidator.from_csv_row(
+                    row,
+                    university_id=state["university_id"],
+                    direction_code=state["direction_url"]
+                )
+                for row in df.to_dicts()
+            ]
+            logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
+            applicants.extend(on_reception_applicants)
+        return {"applicants": applicants}
