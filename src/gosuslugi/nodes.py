@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
@@ -45,7 +45,7 @@ class BaseNode(ABC):
         self.browser = browser
 
     @abstractmethod
-    async def __call__(self, state: TypedDict) -> TypedDict: pass
+    async def __call__(self, state: dict[str, Any]) -> dict[str, Any]: pass
 
 
 class ParseUniversity(BaseNode):
@@ -120,7 +120,9 @@ class ParseDirection(BaseNode):
 
 
 class DownloadApplicants(BaseNode):
-    async def __call__(self, state: AdmissionListState) -> AdmissionListState:
+    async def __call__(
+        self, state: AdmissionListState  # noqa: ARG002
+) -> AdmissionListState:
         logger.info("---DOWNLOAD APPLICANTS LISTS---")
         page = await aget_current_page(self.browser)
         await page.wait_for_selector(LIST_OF_APPLICANTS_SELECTOR, timeout=TIMEOUT)
@@ -168,7 +170,7 @@ class ParseApplicants(BaseNode):
                 applicants.extend(reception_applicants)
                 logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
             except Exception as e:
-                logger.error("---ERROR OCCURRED %s---", e)
+                logger.exception("---ERROR OCCURRED %s---", e)  # noqa: TRY401
         return {"applicants": applicants}
 
 
@@ -178,7 +180,7 @@ class ParseAdmissionLists(BaseNode):
         self.broker = broker
 
     async def __call__(self, state: UniversityState) -> UniversityState:
-        from .graphs import build_admission_list_graph
+        from .graphs import build_admission_list_graph  # noqa: PLC0415
 
         logger.info("---START PARSE UNIVERSITY ADMISSION LISTS---")
         graph = build_admission_list_graph(self.browser)

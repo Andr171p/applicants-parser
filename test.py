@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
-from pydantic import BaseModel
 from playwright.async_api import async_playwright
+from pydantic import BaseModel
 
 from src.core.enums import EducationForm
 from src.gosuslugi.graphs import build_university_graph
@@ -10,11 +10,9 @@ from src.gosuslugi.graphs import build_university_graph
 
 class TestBroker:
     async def publish(
-            self,
-            messages: BaseModel | list[BaseModel] | list[dict] | dict | str,
-            **kwargs
+        self, messages: BaseModel | list[BaseModel] | list[dict] | dict | str, **kwargs
     ) -> None:
-        print(f"Publish message to {kwargs.get("queue")}")
+        print(f"Publish message to {kwargs.get('queue')}")
 
 
 async def main() -> None:

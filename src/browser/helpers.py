@@ -14,7 +14,7 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:  # noqa: C901
+def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:  # noqa: C901, PLR0912
     """
     Отчищает HTML код от лишних тегов, скриптов и прочего ненужного контента
 

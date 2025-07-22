@@ -3,7 +3,7 @@
 # CSS селектор для получения карточки университета
 ORGANIZATION_CARD_SELECTOR = "app-organization-card"
 # CSS селектор для получения названия университета
-# ORGANIZATION_TITLE_SELECTOR = "xpath=//span[@class='title-h3']"
+# ORGANIZATION_TITLE_SELECTOR = "xpath=//span[@class='title-h3']"  # noqa: ERA001
 ORGANIZATION_TITLE_SELECTOR = "span.title-h3.flex-1"
 # CSS селектор кнопки для открытия окна фильтрации университетов
 FILTER_BUTTON_SELECTOR = "button.filter-button"

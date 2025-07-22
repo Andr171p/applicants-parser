@@ -36,7 +36,7 @@ class ApplicantValidator(ApplicantSchema):
 
     @field_validator("date", mode="before")
     def validate_date(cls, date: str) -> datetime:
-        return datetime.strptime(date, "%d.%m.%Y в %H:%M")
+        return datetime.strptime(date, "%d.%m.%Y в %H:%M")  # noqa: DTZ007
 
 
 class DirectionValidator(DirectionSchema):

@@ -5,24 +5,23 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
 
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from ..core.base import Broker
-from .states import UniversityState, AdmissionListState
 from .nodes import (
-    ParseUniversity,
-    FilterDirectionURLs,
-    ParseDirection,
     DownloadApplicants,
+    FilterDirectionURLs,
+    ParseAdmissionLists,
     ParseApplicants,
-    ParseAdmissionLists
+    ParseDirection,
+    ParseUniversity,
 )
+from .states import AdmissionListState, UniversityState
 
 
 def build_university_graph(
-        broker: Broker,
-        browser: AsyncBrowser
+    broker: Broker, browser: AsyncBrowser
 ) -> CompiledStateGraph[UniversityState]:
     graph = StateGraph(UniversityState)
     # Добавления узлов (вершин) графа
@@ -38,7 +37,9 @@ def build_university_graph(
     return graph.compile()
 
 
-def build_admission_list_graph(browser: AsyncBrowser) -> CompiledStateGraph[AdmissionListState]:
+def build_admission_list_graph(
+    browser: AsyncBrowser
+) -> CompiledStateGraph[AdmissionListState]:
     graph = StateGraph(AdmissionListState)
     # Добавление узлов (вершин) графа
     graph.add_node("parse_direction", ParseDirection(browser))
