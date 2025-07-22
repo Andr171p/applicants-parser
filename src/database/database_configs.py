@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import BIGINT, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 created_at = Annotated[datetime, mapped_column(server_default=func.now())]
 int_pk = Annotated[int, mapped_column(primary_key=True)]
@@ -24,3 +24,5 @@ str_def = Annotated[str, mapped_column(default=None)]
 
 class Base(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
+
+    id: Mapped[int_pk]

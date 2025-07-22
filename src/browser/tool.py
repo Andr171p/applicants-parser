@@ -25,9 +25,7 @@ class BaseBrowserTool(BaseTool):
 
     @classmethod
     def from_browser(
-            cls,
-            sync_browser: SyncBrowser | None = None,
-            async_browser: AsyncBrowser | None = None
+        cls, sync_browser: SyncBrowser | None = None, async_browser: AsyncBrowser | None = None
     ) -> BaseBrowserTool:
         """Инициализация инструмента через уже готовый браузер."""
         return cls(sync_browser=sync_browser, async_browser=async_browser)

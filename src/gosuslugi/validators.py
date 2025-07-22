@@ -1,17 +1,14 @@
 from pydantic import field_validator
 
-from src.core.schemas import Direction
+from ..core import DirectionSchema
 
 
-class DirectionValidator(Direction):
+class DirectionValidator(DirectionSchema):
     @field_validator("total_places", mode="before")
     def validate_total_places(cls, total_places: str) -> int:
         return int(
             "".join(
-                filter(str.isdigit, total_places
-                       .replace(" ", "")
-                       .replace("&nbsp;", "")
-                       .strip())
+                filter(str.isdigit, total_places.replace(" ", "").replace("&nbsp;", "").strip())
             )
         )
 

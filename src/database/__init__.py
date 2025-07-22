@@ -1,6 +1,11 @@
-__all__ = ["ApplicantSchema", "ApplicantsModel", "Base", "ListApplicantsSchema", "add_many"]
+__all__ = [
+    "ApplicantsModel",
+    "DirectionsModel",
+    "UniversitysModel",
+    "add_all_applicants",
+    "add_directions",
+    "add_universitys",
+]
 
-from .database_configs import Base
-from .models import ApplicantsModel
-from .schemas import ApplicantSchema, ListApplicantsSchema
-from .session import add_many
+from .models import ApplicantsModel, DirectionsModel, UniversitysModel
+from .session import add_all_applicants, add_directions, add_universitys

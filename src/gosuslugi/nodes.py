@@ -1,37 +1,37 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
-from ..settings import ADMISSION_LISTS_DIR
 from ..browser.utils import aget_current_page
-from ..core.schemas import University
 from ..core.enums import Source
-from .states import UniversityState, AdmissionListState
+from ..core.schemas import University
+from ..settings import ADMISSION_LISTS_DIR
+from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT
 from .helpers import extract_direction_code
-from .validators import DirectionValidator
-from .utils import parse_direction_urls
-from .constants import TIMEOUT, TECHNICAL_ERROR, GOSUSLUGI_URL
 from .selectors import (
-    ORGANIZATION_TITLE_SELECTOR,
-    FILTER_BUTTON_SELECTOR,
-    EDUCATION_FORM_FILTER_SELECTOR,
-    EDUCATION_LEVEL_FILTER_SELECTOR,
-    FETCH_PROFILE_SCRIPT,
-    EDUCATION_FORM_SELECTOR,
-    INSTITUTE_SELECTOR,
     BUDGET_PLACES_XPATH,
-    TOTAL_PLACES_SELECTOR,
+    DOWNLOAD_AS_TABLE_SELECTOR,
+    EDUCATION_FORM_FILTER_SELECTOR,
+    EDUCATION_FORM_SELECTOR,
+    EDUCATION_LEVEL_FILTER_SELECTOR,
     EDUCATION_PRICE_SELECTOR,
-    RECEPTIONS_SELECTOR,
+    FETCH_PROFILE_SCRIPT,
+    FILTER_BUTTON_SELECTOR,
+    INSTITUTE_SELECTOR,
     LIST_OF_APPLICANTS_SELECTOR,
-    DOWNLOAD_AS_TABLE_SELECTOR
+    ORGANIZATION_TITLE_SELECTOR,
+    RECEPTIONS_SELECTOR,
+    TOTAL_PLACES_SELECTOR,
 )
+from .states import AdmissionListState, UniversityState
+from .utils import parse_direction_urls
+from .validators import DirectionValidator
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,8 @@ class BaseNode(ABC):
         self.browser = browser
 
     @abstractmethod
-    async def __call__(self, state: TypedDict) -> TypedDict: pass
+    async def __call__(self, state: TypedDict) -> TypedDict:
+        pass
 
 
 class ParseUniversity(BaseNode):
@@ -52,10 +53,7 @@ class ParseUniversity(BaseNode):
         await page.goto(url)
         title = await page.locator(ORGANIZATION_TITLE_SELECTOR).text_content()
         university = University(
-            id=url.split("/")[-1],
-            title=title.strip(),
-            source=Source.GOSUSLUGI,
-            url=url
+            id=url.split("/")[-1], title=title.strip(), source=Source.GOSUSLUGI, url=url
         )
         return {"university": university}
 
@@ -67,14 +65,11 @@ class FilterDirections(BaseNode):
         button = await page.wait_for_selector(FILTER_BUTTON_SELECTOR, timeout=TIMEOUT)
         await button.click()
         for education_form in state["education_forms"]:
-            await page.click(
-                EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form)
-            )
+            await page.click(EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form))
             logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
         for education_level in state["education_levels"]:
             await page.click(
-                EDUCATION_LEVEL_FILTER_SELECTOR.format(
-                    education_level=education_level)
+                EDUCATION_LEVEL_FILTER_SELECTOR.format(education_level=education_level)
             )
             logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
         await page.click("button:has-text('Применить')")
@@ -95,7 +90,7 @@ class ParseDirection(BaseNode):
             await page.go_back()
             return None
         await page.wait_for_selector("h4.title-h4")
-        direction_kwargs["university_id"] = url.split("/")[-1]  # noqa: PLC0207
+        direction_kwargs["university_id"] = url.split("/")[-1]
         direction_kwargs["code"] = extract_direction_code(url)
         profiles = await page.evaluate(FETCH_PROFILE_SCRIPT)
         direction_kwargs["name"] = profiles[0]
@@ -108,9 +103,7 @@ class ParseDirection(BaseNode):
             direction_kwargs["institute"] = (await institute.text_content()).strip()
         direction_kwargs["budget_places"] = await page.text_content(BUDGET_PLACES_XPATH)
         direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
-        direction_kwargs["education_price"] = await page.text_content(
-            EDUCATION_PRICE_SELECTOR
-        )
+        direction_kwargs["education_price"] = await page.text_content(EDUCATION_PRICE_SELECTOR)
         direction = DirectionValidator(**direction_kwargs)
         return {"direction": direction}
 
@@ -149,4 +142,3 @@ class DownloadApplicants(BaseNode):
 class ParseApplicants(BaseNode):
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
-        ...
