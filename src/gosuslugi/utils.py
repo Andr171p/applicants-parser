@@ -10,28 +10,24 @@ from pathlib import Path
 
 from src.browser.utils import aget_current_page, ascroll_to_click
 from src.core.enums import EducationForm
-from src.core.schemas import Direction
+from src.core.schemas import DirectionSchema
 
-from .constants import (
+from .constants import GOSUSLUGI_SEARCH_URL, GOSUSLUGI_URL, EDUCATION_LEVEL, TECHNICAL_ERROR, TIMEOUT
+from .selectors import (
     BUDGET_PLACES_XPATH,
     DOWNLOAD_AS_TABLE_SELECTOR,
     EDUCATION_FORM_FILTER_SELECTOR,
     EDUCATION_FORM_SELECTOR,
-    EDUCATION_LEVEL,
     EDUCATION_LEVEL_FILTER_SELECTOR,
     EDUCATION_PRICE_SELECTOR,
     EDUCATION_PROGRAM_SELECTOR,
     FETCH_PROFILE_SCRIPT,
     FILTER_BUTTON_SELECTOR,
-    GOSUSLUGI_SEARCH_URL,
-    GOSUSLUGI_URL,
     INSTITUTE_SELECTOR,
     LIST_OF_APPLICANTS_SELECTOR,
-    ORGANIZATION_SELECTOR,
+    ORGANIZATION_CARD_SELECTOR,
     RECEPTIONS_SELECTOR,
     SEE_MORE_BUTTON_SELECTOR,
-    TECHNICAL_ERROR,
-    TIMEOUT,
     TOTAL_PLACES_SELECTOR,
 )
 from .helpers import extract_direction_code
@@ -51,8 +47,8 @@ async def search_university_urls(browser: AsyncBrowser, query: str) -> list[str]
     page = await aget_current_page(browser)
     url = f"{GOSUSLUGI_SEARCH_URL}{query}"
     await page.goto(url)
-    await page.wait_for_selector(f"//{ORGANIZATION_SELECTOR}", state="attached")
-    university_cards = await page.query_selector_all(f"xpath=//{ORGANIZATION_SELECTOR}")
+    await page.wait_for_selector(f"//{ORGANIZATION_CARD_SELECTOR}", state="attached")
+    university_cards = await page.query_selector_all(f"xpath=//{ORGANIZATION_CARD_SELECTOR}")
     university_urls: list[str] = []
     for university_card in university_cards:
         link = await university_card.query_selector("xpath=.//a")
@@ -124,7 +120,7 @@ async def parse_direction_urls(browser: AsyncBrowser) -> list[str]:
     return direction_urls
 
 
-async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
+async def parse_direction(browser: AsyncBrowser, url: str) -> DirectionSchema | None:
     """Асинхронно парсит направление подготовки.
 
     :param browser: Экземпляр асинхронного Playwright браузера.

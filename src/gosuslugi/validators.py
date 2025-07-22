@@ -4,13 +4,13 @@ from datetime import datetime
 
 from pydantic import field_validator
 
-from ..core.schemas import Applicant, Direction
+from ..core.schemas import ApplicantSchema, DirectionSchema
 from .utils import extract_direction_code
 
 
-class ApplicantValidator(Applicant):
+class ApplicantValidator(ApplicantSchema):
     @classmethod
-    def from_csv_row(cls, row: dict[str, str | int], **kwargs) -> Applicant:
+    def from_csv_row(cls, row: dict[str, str | int], **kwargs) -> ApplicantSchema:
         return cls(
             university_id=kwargs.get("university_id"),
             direction_code=kwargs.get("direction_code"),
@@ -39,7 +39,7 @@ class ApplicantValidator(Applicant):
         return datetime.strptime(date, "%d.%m.%Y в %H:%M")
 
 
-class DirectionValidator(Direction):
+class DirectionValidator(DirectionSchema):
     @field_validator("total_places", mode="before")
     def validate_total_places(cls, total_places: str) -> int:
         return int(

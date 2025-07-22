@@ -5,17 +5,19 @@ from typing import TYPE_CHECKING, Any, TypedDict
 if TYPE_CHECKING:
     from playwright.async_api import Browser as AsyncBrowser
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 
 import polars as pl
 
 from ..browser.utils import aget_current_page
+from ..core.base import Broker
 from ..core.enums import Source
-from ..core.schemas import Applicant, University
+from ..core.schemas import ApplicantSchema, UniversitySchema
 from ..settings import ADMISSION_LISTS_DIR
 from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT
-from .helpers import extract_direction_code
+from .helpers import extract_direction_code, extract_university_id
 from .selectors import (
     BUDGET_PLACES_XPATH,
     DOWNLOAD_AS_TABLE_SELECTOR,
@@ -53,8 +55,8 @@ class ParseUniversity(BaseNode):
         page = await aget_current_page(self.browser)
         await page.goto(url)
         title = await page.locator(ORGANIZATION_TITLE_SELECTOR).text_content()
-        university = University(
-            id=url.split("/")[-1],
+        university = UniversitySchema(
+            id=extract_university_id(url),
             title=title.strip(),
             source=Source.GOSUSLUGI,
             url=url
@@ -62,7 +64,7 @@ class ParseUniversity(BaseNode):
         return {"university": university}
 
 
-class FilterDirections(BaseNode):
+class FilterDirectionURLs(BaseNode):
     async def __call__(self, state: UniversityState) -> UniversityState:
         logger.info("---FILTER DIRECTIONS---")
         page = await aget_current_page(self.browser)
@@ -100,7 +102,7 @@ class ParseDirection(BaseNode):
         direction_kwargs["university_id"] = url.split("/")[-1]
         direction_kwargs["code"] = extract_direction_code(url)
         profiles = await page.evaluate(FETCH_PROFILE_SCRIPT)
-        direction_kwargs["name"] = profiles[0]
+        direction_kwargs["title"] = profiles[0]
         await page.click("h4.title-h4")
         education_form = await page.query_selector(EDUCATION_FORM_SELECTOR)
         if education_form:
@@ -151,17 +153,44 @@ class DownloadApplicants(BaseNode):
 class ParseApplicants(BaseNode):
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
-        applicants: list[Applicant] = []
+        applicants: list[ApplicantSchema] = []
         for admission_list_file in state.get("admission_list_files", []):
-            df = pl.read_csv(admission_list_file)
-            on_reception_applicants = [
-                ApplicantValidator.from_csv_row(
-                    row,
-                    university_id=state["university_id"],
-                    direction_code=state["direction_url"]
-                )
-                for row in df.to_dicts()
-            ]
-            logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
-            applicants.extend(on_reception_applicants)
+            try:
+                df = pl.read_csv(admission_list_file)
+                reception_applicants = [
+                    ApplicantValidator.from_csv_row(
+                        row,
+                        university_id=state["university_id"],
+                        direction_code=state["direction_url"]
+                    )
+                    for row in df.to_dicts()
+                ]
+                applicants.extend(reception_applicants)
+                logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
+            except Exception as e:
+                logger.error("---ERROR OCCURRED %s---", e)
         return {"applicants": applicants}
+
+
+class ParseAdmissionLists(BaseNode):
+    def __init__(self, broker: Broker, browser: AsyncBrowser) -> None:
+        super().__init__(browser)
+        self.broker = broker
+
+    async def __call__(self, state: UniversityState) -> UniversityState:
+        from .graphs import build_admission_list_graph
+
+        logger.info("---START PARSE UNIVERSITY ADMISSION LISTS---")
+        graph = build_admission_list_graph(self.browser)
+        university_id = extract_university_id(state["university_url"])
+        await self.broker.publish(state["university"], queue="universities")
+        for direction_url in state.get("direction_urls", []):
+            response = await graph.ainvoke({
+                "university_id": university_id,
+                "direction_url": direction_url
+            })
+            await asyncio.gather(
+                self.broker.publish(response.get("direction"), queue="directions"),
+                self.broker.publish(response.get("applicants"), queue="applicants")
+            )
+        return {"message": "FINISH"}

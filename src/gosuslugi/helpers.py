@@ -1,3 +1,4 @@
+
 def extract_direction_code(url: str) -> str:
     """Извлекает код направления подготовки из его URL.
 
@@ -7,6 +8,15 @@ def extract_direction_code(url: str) -> str:
     parts = url.strip("/").split("/")
     index = parts.index("specialties")
     return parts[index + 1]
+
+
+def extract_university_id(url: str) -> int:
+    """Извлекает ID университета из его URL адреса.
+
+    :param url: URL адрес университета на Госуслугах
+    :return: ID университета с Госуслуг
+    """
+    return url.split("/")[-1]
 
 
 def handle_technical_error() -> ...: ...

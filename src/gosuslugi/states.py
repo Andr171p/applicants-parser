@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Literal
 
 from pathlib import Path
 
@@ -14,6 +14,7 @@ class UniversityState(TypedDict):
     education_forms: list[EducationForm]
     education_levels: list[EDUCATION_LEVEL]
     direction_urls: list[str]
+    message: Literal["FINISH", "ERROR"]
 
 
 class AdmissionListState(TypedDict):
