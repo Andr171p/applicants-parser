@@ -24,9 +24,7 @@ def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:  # noqa: C901
     soup = BeautifulSoup(html, "html.parser")
     for element in soup(UNUSEFUL_TAGS):
         element.decompose()
-    for comment in soup.find_all(
-        string=lambda text: isinstance(text, (Comment, Doctype))
-    ):
+    for comment in soup.find_all(string=lambda text: isinstance(text, (Comment, Doctype))):
         comment.extract()
     for tag in soup.find_all(True):
         if not tag.get_text(strip=True) and not tag.attrs:
@@ -62,7 +60,7 @@ def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:  # noqa: C901
     for line in soup.prettify().split("\n"):
         line = line.strip()  # noqa: PLW2901
         if line:
-            line = re.sub(r'^\s{2,}', '  ', line)  # noqa: PLW2901
+            line = re.sub(r"^\s{2,}", "  ", line)  # noqa: PLW2901
             compact_html.append(line)
 
     result = "\n".join(compact_html)
@@ -73,7 +71,7 @@ def clean_html(html: str, max_length: int = MAX_LENGTH) -> str:  # noqa: C901
         result = result[:max_length]
         last_tag_pos = result.rfind(">")
         if last_tag_pos != -1:
-            result = result[:last_tag_pos + 1]
+            result = result[: last_tag_pos + 1]
         result += "\n<!-- CONTENT TRUNCATED -->"
 
     return result

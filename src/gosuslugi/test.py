@@ -10,7 +10,8 @@ from pathlib import Path
 
 from src.browser.utils import aget_current_page, ascroll_to_click
 from src.core.enums import EducationForm
-from src.core.schemas import Direction
+
+from ..core import DirectionSchema
 from .constants import (
     BUDGET_PLACES_XPATH,
     DOWNLOAD_AS_TABLE_SELECTOR,
@@ -54,15 +55,10 @@ async def filter_directions(
     button = await page.wait_for_selector(FILTER_BUTTON_SELECTOR, timeout=TIMEOUT * 2000)
     await button.click()
     for education_form in education_forms:
-        await page.click(
-            EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form)
-        )
+        await page.click(EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form))
         logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
     for education_level in education_levels:
-        await page.click(
-            EDUCATION_LEVEL_FILTER_SELECTOR.format(
-                education_level=education_level)
-        )
+        await page.click(EDUCATION_LEVEL_FILTER_SELECTOR.format(education_level=education_level))
         logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
     await page.click("button:has-text('Применить')")
     logger.info("---SUBMIT FILTERS---")
@@ -98,7 +94,7 @@ async def parse_direction_urls(browser: AsyncBrowser) -> list[str]:
     return direction_urls
 
 
-async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
+async def parse_direction(browser: AsyncBrowser, url: str) -> DirectionSchema | None:
     """Асинхронно парсит направление подготовки.
 
     :param browser: Экземпляр асинхронного Playwright браузера.
@@ -127,9 +123,7 @@ async def parse_direction(browser: AsyncBrowser, url: str) -> Direction | None:
         direction_kwargs["institute"] = (await institute.text_content()).strip()
     direction_kwargs["budget_places"] = await page.text_content(BUDGET_PLACES_XPATH)
     direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
-    direction_kwargs["education_price"] = await page.text_content(
-        EDUCATION_PRICE_SELECTOR
-    )
+    direction_kwargs["education_price"] = await page.text_content(EDUCATION_PRICE_SELECTOR)
     return DirectionValidator(**direction_kwargs)
 
 

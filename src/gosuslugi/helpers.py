@@ -1,4 +1,3 @@
-
 def extract_direction_code(url: str) -> str:
     """Извлекает код направления подготовки из его URL.
 
