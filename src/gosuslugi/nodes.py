@@ -17,7 +17,7 @@ from ..core.enums import Source
 from ..core.schemas import ApplicantSchema, UniversitySchema
 from ..settings import ADMISSION_LISTS_DIR
 from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT
-from .helpers import extract_direction_code, extract_university_id
+from .helpers import extract_direction_code, extract_university_id, format_row
 from .selectors import (
     BUDGET_PLACES_XPATH,
     DOWNLOAD_AS_TABLE_SELECTOR,
@@ -159,13 +159,15 @@ class ParseApplicants(BaseNode):
         for admission_list_file in state.get("admission_list_files", []):
             try:
                 df = pl.read_csv(admission_list_file)
+                print(df)
+                print(df.columns)
                 reception_applicants = [
                     ApplicantValidator.from_csv_row(
-                        row,
+                        format_row(row),
                         university_id=state["university_id"],
                         direction_code=state["direction_url"]
                     )
-                    for row in df.to_dicts()
+                    for row in df.iter_rows()
                 ]
                 applicants.extend(reception_applicants)
                 logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))

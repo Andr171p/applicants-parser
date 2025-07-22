@@ -12,7 +12,7 @@ class TestBroker:
     async def publish(
         self, messages: BaseModel | list[BaseModel] | list[dict] | dict | str, **kwargs
     ) -> None:
-        print(f"Publish message to {kwargs.get('queue')}")
+        print(f"Publish message to {kwargs.get('queue')}: {messages}")
 
 
 async def main() -> None:

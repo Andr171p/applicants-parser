@@ -18,4 +18,13 @@ def extract_university_id(url: str) -> int:
     return url.split("/")[-1]  # noqa: PLC0207
 
 
+def format_row(row: tuple[str]) -> list[str | int]:
+    """Приводит уёбищный кортеж к удобному массиву.
+
+    :param row: Уёбищный кортеж
+    :return: Пиздатый массив
+    """
+    return list(map(lambda x: x.replace('"', ''), row[0].split(";")))
+
+
 def handle_technical_error() -> ...: ...

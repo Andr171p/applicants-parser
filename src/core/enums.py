@@ -19,6 +19,7 @@ class Submit(StrEnum):
     PAPER = "Бумажное"
     ELECTRONIC = "Электронное"
     NOT_SUBMITTED = "—"
+    YES = "Да"
 
 
 class Status(StrEnum):

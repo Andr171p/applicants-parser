@@ -5,25 +5,26 @@ from datetime import datetime
 from pydantic import field_validator
 
 from ..core.schemas import ApplicantSchema, DirectionSchema
+from .constants import NO_POINTS, ZERO_POINTS
 from .utils import extract_direction_code
 
 
 class ApplicantValidator(ApplicantSchema):
     @classmethod
-    def from_csv_row(cls, row: dict[str, str | int], **kwargs) -> ApplicantSchema:
+    def from_csv_row(cls, row: list[str | int], **kwargs) -> ApplicantSchema:
         return cls(
             university_id=kwargs.get("university_id"),
             direction_code=kwargs.get("direction_code"),
-            id=row["ID участника"],
-            serial_number=row["Порядковый номер"],
-            priority=row["Приоритет конкурса"],
-            submit=row["Подано согласие"],
-            total_points=row["Сумма баллов"],
-            points=row["Баллы за ВИ"],
-            additional_points=row["Баллы за ИД"],
-            status=row["Статус"],
+            id=row[1],
+            serial_number=row[0],
+            priority=row[2],
+            submit=row[3],
+            total_points=row[4],
+            points=row[5],
+            additional_points=row[6],
+            status=row[7],
             original=False,  # For test mode
-            date=row["Дата выбора конкурсной группы по Москве"]
+            date=row[8]
         )
 
     @field_validator("direction_code", mode="before")
@@ -32,6 +33,8 @@ class ApplicantValidator(ApplicantSchema):
 
     @field_validator("points", mode="before")
     def validate_points(cls, points: str) -> list[int]:
+        if points == NO_POINTS:
+            return [ZERO_POINTS]
         return list(map(int, points.split(" ")))
 
     @field_validator("date", mode="before")
