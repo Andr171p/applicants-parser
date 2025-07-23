@@ -189,12 +189,15 @@ class ParseAdmissionLists(BaseNode):
         university_id = extract_university_id(state["university_url"])
         await self.broker.publish(state["university"], queue="universities")
         for direction_url in state.get("direction_urls", []):
-            response = await graph.ainvoke({
-                "university_id": university_id,
-                "direction_url": direction_url
-            })
-            await asyncio.gather(
-                self.broker.publish(response.get("direction"), queue="directions"),
-                self.broker.publish(response.get("applicants"), queue="applicants")
-            )
+            try:
+                response = await graph.ainvoke({
+                    "university_id": university_id,
+                    "direction_url": direction_url
+                })
+                await asyncio.gather(
+                    self.broker.publish(response.get("direction"), queue="directions"),
+                    self.broker.publish(response.get("applicants"), queue="applicants")
+                )
+            except Exception as e:
+                logger.exception("---ERROR OCCURRED %s---", e)
         return {"message": "FINISH"}
