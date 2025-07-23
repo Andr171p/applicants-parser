@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 import asyncio
 import logging
+import os
 from abc import ABC, abstractmethod
 
 import polars as pl
@@ -159,8 +160,6 @@ class ParseApplicants(BaseNode):
         for admission_list_file in state.get("admission_list_files", []):
             try:
                 df = pl.read_csv(admission_list_file)
-                print(df)
-                print(df.columns)
                 reception_applicants = [
                     ApplicantValidator.from_csv_row(
                         format_row(row),
@@ -169,6 +168,7 @@ class ParseApplicants(BaseNode):
                     )
                     for row in df.iter_rows()
                 ]
+                os.remove(admission_list_file)
                 applicants.extend(reception_applicants)
                 logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
             except Exception as e:
