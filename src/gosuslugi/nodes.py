@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseNode(ABC):
+    """Базовый класс для создания узла (вершины графа)."""
     def __init__(self, browser: AsyncBrowser) -> None:
         self.browser = browser
 
@@ -51,6 +52,7 @@ class BaseNode(ABC):
 
 
 class ParseUniversity(BaseNode):
+    """Парсинг информации об университете по его URL с Госуслуг."""
     async def __call__(self, state: UniversityState) -> UniversityState:
         logger.info("---SELECT UNIVERSITY---")
         url = state["university_url"]
@@ -67,6 +69,7 @@ class ParseUniversity(BaseNode):
 
 
 class FilterDirectionURLs(BaseNode):
+    """Фильтрация направлений подготовки на странице."""
     async def __call__(self, state: UniversityState) -> UniversityState:
         logger.info("---FILTER DIRECTIONS---")
         page = await aget_current_page(self.browser)
@@ -90,6 +93,7 @@ class FilterDirectionURLs(BaseNode):
 
 
 class ParseDirection(BaseNode):
+    """Парсинг конкретного направления подготовки."""
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         url = state["direction_url"]
         logger.info("---PARSE DIRECTION %s---", url)
@@ -127,6 +131,7 @@ class ParseDirection(BaseNode):
 
 
 class DownloadApplicants(BaseNode):
+    """Скачивание файлов с конкурсными списками."""
     async def __call__(
         self, state: AdmissionListState  # noqa: ARG002
 ) -> AdmissionListState:
@@ -160,6 +165,7 @@ class DownloadApplicants(BaseNode):
 
 
 class ParseApplicants(BaseNode):
+    """Парсинг абитуриентов из файлов с конкурсными списками."""
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
         applicants: list[ApplicantSchema] = []
@@ -183,6 +189,9 @@ class ParseApplicants(BaseNode):
 
 
 class ParseAdmissionLists(BaseNode):
+    """Парсинг всей информации об университете и конкурсных списков
+    с отправкой в брокер сообщений.
+    """
     def __init__(self, broker: Broker, browser: AsyncBrowser) -> None:
         super().__init__(browser)
         self.broker = broker
@@ -205,5 +214,5 @@ class ParseAdmissionLists(BaseNode):
                     self.broker.publish(response.get("applicants"), queue="applicants")
                 )
             except Exception as e:
-                logger.exception("---ERROR OCCURRED %s---", e)
+                logger.exception("---ERROR OCCURRED %s---", e)  # noqa: TRY401
         return {"message": "FINISH"}
