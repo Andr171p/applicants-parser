@@ -1,7 +1,7 @@
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker
 
-from core import DirectionSchema, ListApplicantsSchema, UniversitySchema
+from core import ApplicantSchema, DirectionSchema, UniversitySchema
 from database import add_all_applicants, add_directions, add_universitys
 from settings import settings
 
@@ -20,8 +20,8 @@ async def save_directions(schema: DirectionSchema) -> None:
 
 
 @broker.subscriber("save_applicants")
-async def save_applicants(schema: ListApplicantsSchema) -> None:
-    await add_all_applicants(schema)
+async def save_applicants(data: list[ApplicantSchema]) -> None:
+    await add_all_applicants(data)
 
 
 @app.on_startup

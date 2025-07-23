@@ -13,12 +13,14 @@ int_pk = Annotated[int, mapped_column(primary_key=True)]
 uuid_pk = Annotated[
     uuid.UUID, mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 ]
-int_null = Annotated[int, mapped_column(nullable=False, unique=True)]
+bool_null = Annotated[bool, mapped_column(nullable=False)]
+int_null = Annotated[int, mapped_column(nullable=False)]
+float_null = Annotated[float, mapped_column(nullable=False)]
 big_int_uniq = Annotated[int, mapped_column(BIGINT, nullable=True, unique=True)]
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 str_uniq_null = Annotated[str, mapped_column(unique=True, nullable=True)]
 str_null_true = Annotated[str, mapped_column(nullable=True)]
-str_nullable = Annotated[str, mapped_column(nullable=False)]
+str_null = Annotated[str, mapped_column(nullable=False)]
 str_def = Annotated[str, mapped_column(default=None)]
 
 

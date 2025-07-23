@@ -1,10 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from ..core import DirectionSchema, ListApplicantsSchema, UniversitySchema
+from ..core import ApplicantSchema, DirectionSchema, UniversitySchema
 from ..settings import settings
+from .models import ApplicantsModel, DirectionsModel, UniversitysModel
 
 engine = create_async_engine(url=settings.sql_settings.get_db_url, echo=True)
 session_maker = async_sessionmaker(
@@ -23,17 +25,20 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 async def add_universitys(schema: UniversitySchema) -> None:
     async with get_session() as session:
-        session.add(schema.to_model)
+        stmt = insert(UniversitysModel).values(**schema.model_dump())
+        session.add(stmt)
         await session.commit()
 
 
 async def add_directions(schema: DirectionSchema) -> None:
     async with get_session() as session:
-        session.add(schema.to_model)
+        stmt = insert(DirectionsModel).values(**schema.model_dump())
+        session.add(stmt)
         await session.commit()
 
 
-async def add_all_applicants(schema: ListApplicantsSchema) -> None:
+async def add_all_applicants(data: list[ApplicantSchema]) -> None:
     async with get_session() as session:
-        session.add_all(schema.to_database())
+        stmt = [ApplicantsModel(**applicant.model_dump()) for applicant in data]
+        session.add_all(stmt)
         await session.commit()
