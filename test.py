@@ -15,13 +15,17 @@ class TestBroker:
         print(f"Publish message to {kwargs.get('queue')}: {messages}")
 
 
+test_url = "https://www.gosuslugi.ru/vuznavigator/universities/1449"
+tumgu_url = "https://www.gosuslugi.ru/vuznavigator/universities/52"
+
+
 async def main() -> None:
     broker = TestBroker()
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=False)
         graph = build_university_graph(broker, browser)
         response = await graph.ainvoke({
-            "university_url": "https://www.gosuslugi.ru/vuznavigator/universities/52",
+            "university_url": test_url,
             "education_forms": [EducationForm.FULL_TIME],
             "education_levels": ["Бакалавриат", "Специалитет"],
         })

@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import field_validator
 
 from ..core.schemas import ApplicantSchema, DirectionSchema
-from .constants import NO_POINTS, ZERO_POINTS
+from .constants import NO_POINTS, ZERO_VALUE
 from .utils import extract_direction_code
 
 
@@ -34,7 +34,7 @@ class ApplicantValidator(ApplicantSchema):
     @field_validator("points", mode="before")
     def validate_points(cls, points: str) -> list[int]:
         if points == NO_POINTS:
-            return [ZERO_POINTS]
+            return [ZERO_VALUE]
         return list(map(int, points.split(" ")))
 
     @field_validator("date", mode="before")

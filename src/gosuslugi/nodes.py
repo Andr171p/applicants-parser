@@ -11,13 +11,14 @@ import os
 from abc import ABC, abstractmethod
 
 import polars as pl
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from ..browser.utils import aget_current_page
 from ..core.base import Broker
 from ..core.enums import Source
 from ..core.schemas import ApplicantSchema, UniversitySchema
 from ..settings import ADMISSION_LISTS_DIR
-from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT
+from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT, ZERO_VALUE
 from .helpers import extract_direction_code, extract_university_id, format_row
 from .selectors import (
     BUDGET_PLACES_XPATH,
@@ -111,7 +112,12 @@ class ParseDirection(BaseNode):
         institute = await page.query_selector(INSTITUTE_SELECTOR)
         if institute:
             direction_kwargs["institute"] = (await institute.text_content()).strip()
-        direction_kwargs["budget_places"] = await page.text_content(BUDGET_PLACES_XPATH)
+        try:
+            direction_kwargs["budget_places"] = await page.text_content(
+                BUDGET_PLACES_XPATH, timeout=TIMEOUT * 5
+            )
+        except PlaywrightTimeoutError:
+            direction_kwargs["budget_places"] = ZERO_VALUE
         direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
         direction_kwargs["education_price"] = await page.text_content(
             EDUCATION_PRICE_SELECTOR

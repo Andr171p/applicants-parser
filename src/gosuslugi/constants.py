@@ -16,4 +16,4 @@ TECHNICAL_ERROR = "Техническая ошибка"
 
 # Нет баллов за ВИ
 NO_POINTS = "—"
-ZERO_POINTS = 0
+ZERO_VALUE = 0
