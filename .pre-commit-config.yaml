@@ -5,10 +5,12 @@ repos:
         name: mypy
         entry: mypy src/
         language: system
+        types: [ python ]
         pass_filenames: true
 
       - id: ruff
         name: ruff
         entry: ruff check .
         language: system
+        types: [ python ]
         pass_filenames: true
