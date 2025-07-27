@@ -17,6 +17,7 @@ class TestBroker:
 
 test_url = "https://www.gosuslugi.ru/vuznavigator/universities/1449"
 tumgu_url = "https://www.gosuslugi.ru/vuznavigator/universities/52"
+tyuiu_url = "https://www.gosuslugi.ru/vuznavigator/universities/43"
 
 
 async def main() -> None:
@@ -25,7 +26,7 @@ async def main() -> None:
         browser = await playwright.chromium.launch(headless=False)
         graph = build_university_graph(broker, browser)
         response = await graph.ainvoke({
-            "university_url": test_url,
+            "university_url": tyuiu_url,
             "education_forms": [EducationForm.FULL_TIME],
             "education_levels": ["Бакалавриат", "Специалитет"],
         })

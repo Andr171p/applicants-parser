@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
 
 from .enums import EducationForm, Source, Submit
@@ -33,17 +31,16 @@ class DirectionSchema(BaseModel):
 
 class ApplicantSchema(BaseModel):
     """Абитуриент из конкурсного списка"""
-    university_id: int      # ID университета
-    direction_code: str     # Код направления подготовки
-    id: int                 # ID абитуриента с Госуслуг
-    serial_number: int      # Порядковый номер
-    priority: int           # Приоритет
-    submit: Submit          # Согласие
-    total_points: int       # Сумма баллов
-    points: list[int]       # Баллы за ВИ
-    additional_points: int  # Дополнительные баллы
-    original: bool          # Сдан ли оригинал
-    status: str             # Статус заявления
-    date: datetime          # Дата подачи заявления
+    university_id: int               # ID университета
+    direction_code: str              # Код направления подготовки
+    id: int                          # ID абитуриента с Госуслуг
+    place: int                       # Место в конкурсе
+    priority: int                    # Приоритет
+    submit: Submit                   # Согласие
+    total_points: int                # Сумма баллов
+    entrance_exam_points: list[int]  # Баллы за ВИ
+    additional_points: int           # Баллы за ИД
+    without_entrance_exams: bool     # True если с БВИ, False если без
+    advantage: str | None = None     # Преимущество
 
     model_config = ConfigDict(from_attributes=True)

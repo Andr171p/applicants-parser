@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from pydantic import field_validator
 
 from ..core.schemas import ApplicantSchema, DirectionSchema
-from .constants import NO_POINTS, ZERO_VALUE
+from .constants import NO_POINTS, WITHOUT_ENTRANCE_EXAMS, ZERO_VALUE
 from .utils import extract_direction_code
 
 
@@ -16,30 +14,41 @@ class ApplicantValidator(ApplicantSchema):
             university_id=kwargs.get("university_id"),
             direction_code=kwargs.get("direction_code"),
             id=row[1],
-            serial_number=row[0],
+            place=row[0],
             priority=row[2],
-            submit=row[3],
-            total_points=row[4],
-            points=row[5],
-            additional_points=row[6],
-            status=row[7],
-            original=False,  # For test mode
-            date=row[8]
+            submit=row[4],
+            total_points=row[6],
+            entrance_exam_points=row[7],
+            additional_points=row[8],
+            without_entrance_exams=row[9],
+            advantage=row[10]
         )
 
     @field_validator("direction_code", mode="before")
     def validate_direction_code(cls, direction_url: str) -> str:
         return extract_direction_code(direction_url)
 
-    @field_validator("points", mode="before")
-    def validate_points(cls, points: str) -> list[int]:
-        if points == NO_POINTS:
-            return [ZERO_VALUE]
-        return list(map(int, points.split(" ")))
+    @field_validator("total_points", mode="before")
+    def validate_total_points(cls, total_points: str | int) -> int:
+        if isinstance(total_points, str) and total_points == "—":
+            return ZERO_VALUE
+        return int(total_points)
 
-    @field_validator("date", mode="before")
-    def validate_date(cls, date: str) -> datetime:
-        return datetime.strptime(date, "%d.%m.%Y в %H:%M")  # noqa: DTZ007
+    @field_validator("entrance_exam_points", mode="before")
+    def validate_entrance_exam_points(cls, entrance_exam_points: str) -> list[int]:
+        if entrance_exam_points == NO_POINTS:
+            return [ZERO_VALUE]
+        return list(map(int, entrance_exam_points.split(" ")))
+
+    @field_validator("without_entrance_exams", mode="before")
+    def validate_without_entrance_exams(cls, without_entrance_exams: str) -> bool:
+        return without_entrance_exams == WITHOUT_ENTRANCE_EXAMS
+
+    @field_validator("advantage", mode="before")
+    def validate_advantage(cls, advantage: str) -> str | None:
+        if advantage == "—":
+            return None
+        return advantage
 
 
 class DirectionValidator(DirectionSchema):

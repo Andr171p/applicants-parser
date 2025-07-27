@@ -43,7 +43,8 @@ TOTAL_PLACES_SELECTOR = "div.header-places div.small-text"
 # CSS селектор для получения цены образования
 EDUCATION_PRICE_SELECTOR = "div.title-h3.mb-8"
 # CSS селектор для перехода на страницу с конкурсными списками
-LIST_OF_APPLICANTS_SELECTOR = "a:has-text('Списки подавших документы')"
+# LIST_OF_APPLICANTS_SELECTOR = "a:has-text('Списки подавших документы')"
+LIST_OF_APPLICANTS_SELECTOR = "a:has-text('Конкурсные списки')"
 # CSS селектор для открытия таблицы с определёнными цифрами приёма
 RECEPTIONS_SELECTOR = "ul.shadow-block"
 # CSS селектор кнопки для скачивания рейтинга
