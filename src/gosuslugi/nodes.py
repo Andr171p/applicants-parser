@@ -180,11 +180,13 @@ class ParseApplicants(BaseNode):
                     )
                     for row in df.iter_rows()
                 ]
-                os.remove(admission_list_file)
+                # os.remove(admission_list_file)
                 applicants.extend(reception_applicants)
                 logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
             except Exception as e:
                 logger.exception("---ERROR OCCURRED %s---", e)  # noqa: TRY401
+            finally:
+                os.remove(admission_list_file)
         return {"applicants": applicants}
 
 
