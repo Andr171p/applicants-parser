@@ -3,14 +3,14 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: mypy src/
-        language: system
-        types: [ python ]
-        pass_filenames: true
+        entry: python -m mypy src/
+        language: python
+        types: [python]
+        pass_filenames: false
 
       - id: ruff
         name: ruff
-        entry: ruff check .
-        language: system
-        types: [ python ]
+        entry: python -m ruff check .
+        language: python
+        types: [python]
         pass_filenames: true
