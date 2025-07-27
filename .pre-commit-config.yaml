@@ -4,13 +4,13 @@ repos:
       - id: mypy
         name: mypy
         entry: python -m mypy src/
-        language: python
+        language: system
         types: [python]
         pass_filenames: false
 
       - id: ruff
         name: ruff
         entry: python -m ruff check .
-        language: python
+        language: system
         types: [python]
         pass_filenames: true
