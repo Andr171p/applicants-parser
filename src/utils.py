@@ -1,7 +1,7 @@
 from typing import Any, TypeVar
 
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import Coroutine, Iterator
 
 T = TypeVar("T")
 

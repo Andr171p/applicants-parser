@@ -7,4 +7,8 @@ class GigaChatModel(StrEnum):
     PRO = "GigaChat-2-Pro"
 
 
-MAX_RECURSION_LIMIT = 50  # Максимальный лимит рекурсивных вызовов AI агента.
+# Максимальный лимит рекурсивных вызовов AI агента.
+MAX_RECURSION_LIMIT = 50
+
+# Количество университетов.
+UNIVERSITIES_COUNT = 1737

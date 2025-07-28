@@ -12,7 +12,7 @@ class TestBroker:
     async def publish(
         self, messages: BaseModel | list[BaseModel] | list[dict] | dict | str, **kwargs
     ) -> None:
-        print(f"Publish message to {kwargs.get('queue')}: {messages}")
+        print(f"Publish message to {kwargs.get("queue")}: {messages}")
 
 
 test_url = "https://www.gosuslugi.ru/vuznavigator/universities/1449"

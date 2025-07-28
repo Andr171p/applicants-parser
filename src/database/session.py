@@ -4,9 +4,8 @@ from contextlib import asynccontextmanager
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from core import ApplicantSchema, DirectionSchema, UniversitySchema
-from settings import settings
-
+from ..core import ApplicantSchema, DirectionSchema, UniversitySchema
+from ..settings import settings
 from .models import ApplicantsModel, DirectionsModel, UniversitiesModel
 
 engine = create_async_engine(url=settings.sql_settings.get_db_url, echo=True)
@@ -24,7 +23,7 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-async def add_universitys(schema: UniversitySchema) -> None:
+async def add_universities(schema: UniversitySchema) -> None:
     async with get_session() as session:
         stmt = insert(UniversitiesModel).values(**schema.model_dump())
         await session.execute(stmt)

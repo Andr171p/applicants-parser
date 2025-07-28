@@ -1,3 +1,0 @@
-"universityApiUrl": "//www.gosuslugi.ru/api/university/v1/",
-  "universityApi2Url": "//www.gosuslugi.ru/api/university/v2/",
-  "universityApi9Url": "//www.gosuslugi.ru/api/university/v9/",
