@@ -1,14 +1,14 @@
 from faststream.rabbit import RabbitRouter
 
 from .core import ApplicantSchema, DirectionSchema, UniversitySchema
-from .database import add_all_applicants, add_directions, add_universitys
+from .database import add_all_applicants, add_directions, add_universities
 
 router = RabbitRouter()
 
 
 @router.subscriber("universities")
 async def save_universities(schema: UniversitySchema) -> None:
-    await add_universitys(schema)
+    await add_universities(schema)
 
 
 @router.subscriber("directions")

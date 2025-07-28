@@ -1,5 +1,4 @@
-from dishka import Provider, Scope, provide, from_context, make_async_container
-
+from dishka import Provider, Scope, from_context, make_async_container, provide
 from faststream.rabbit import RabbitBroker
 
 from .settings import Settings, settings
