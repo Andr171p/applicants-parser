@@ -58,4 +58,6 @@ class ApplicantsModel(Base):
     without_entrance_exams: Mapped[bool_null]  # Сдан ли оригинал
     advantage: Mapped[str_null_true]  # Статус заявления
 
-    __table_args__ = (PrimaryKeyConstraint("university_id", "id", name="applicant_pk"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("university_id", "id", "direction_code", name="applicant_pk"),
+    )
