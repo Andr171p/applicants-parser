@@ -9,19 +9,20 @@ from .utils import extract_direction_code
 
 class ApplicantValidator(ApplicantSchema):
     @classmethod
-    def from_csv_row(cls, row: list[str | int], **kwargs) -> ApplicantSchema:
+    def from_csv_row(cls, row: dict[str, str | int], **kwargs) -> ApplicantSchema:
         return cls(
             university_id=kwargs.get("university_id"),
             direction_code=kwargs.get("direction_code"),
-            id=row[1],
-            place=row[0],
-            priority=row[2],
-            submit=row[4],
-            total_points=row[6],
-            entrance_exam_points=row[7],
-            additional_points=row[8],
-            without_entrance_exams=row[9],
-            advantage=row[10]
+            reception=kwargs.get("reception"),
+            id=row["ID участника"],
+            place=row["Место в конкурсе"],
+            priority=row["Приоритет конкурса"],
+            submit=row["Подано согласие"],
+            total_points=row["Сумма баллов"],
+            entrance_exam_points=row["Баллы за ВИ"],
+            additional_points=row["Баллы за ИД"],
+            without_entrance_exams=row["БВИ"],
+            advantage=row["Преимущественное право"]
         )
 
     @field_validator("direction_code", mode="before")
@@ -35,9 +36,11 @@ class ApplicantValidator(ApplicantSchema):
         return int(total_points)
 
     @field_validator("entrance_exam_points", mode="before")
-    def validate_entrance_exam_points(cls, entrance_exam_points: str) -> list[int]:
+    def validate_entrance_exam_points(cls, entrance_exam_points: str | int) -> list[int]:
         if entrance_exam_points == NO_POINTS:
             return [ZERO_VALUE]
+        if isinstance(entrance_exam_points, int):
+            return [entrance_exam_points]
         return list(map(int, entrance_exam_points.split(" ")))
 
     @field_validator("without_entrance_exams", mode="before")

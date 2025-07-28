@@ -26,7 +26,7 @@ async def main() -> None:
         browser = await playwright.chromium.launch(headless=False)
         graph = build_university_graph(broker, browser)
         response = await graph.ainvoke({
-            "university_url": tyuiu_url,
+            "university_url": tumgu_url,
             "education_forms": [EducationForm.FULL_TIME],
             "education_levels": ["Бакалавриат", "Специалитет"],
         })

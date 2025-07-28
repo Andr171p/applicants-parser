@@ -9,6 +9,7 @@ import asyncio
 import logging
 import os
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import polars as pl
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -19,7 +20,7 @@ from ..core.enums import Source
 from ..core.schemas import ApplicantSchema, UniversitySchema
 from ..settings import ADMISSION_LISTS_DIR
 from .constants import GOSUSLUGI_URL, TECHNICAL_ERROR, TIMEOUT, ZERO_VALUE
-from .helpers import extract_direction_code, extract_university_id, format_row
+from .helpers import extract_direction_code, extract_university_id
 from .selectors import (
     BUDGET_PLACES_XPATH,
     DOWNLOAD_AS_TABLE_SELECTOR,
@@ -142,15 +143,19 @@ class DownloadApplicants(BaseNode):
         await list_of_applicants.click()
         await page.wait_for_selector(RECEPTIONS_SELECTOR, timeout=TIMEOUT)
         receptions = await page.query_selector_all(f"{RECEPTIONS_SELECTOR} li.list-divider")
-        applicant_list_urls: list[str] = []
+        # applicant_list_urls: list[str] = []
+        receptions2applicant_list_urls: dict[str, str] = {}
         for reception in receptions:
+            reception_text = await reception.inner_text()
             link = await reception.query_selector("a.link-plain")
             if link:
                 link_href = await link.get_attribute("href")
-                applicant_list_urls.append(f"{GOSUSLUGI_URL}{link_href}")
-        logger.info("---FOUND %s APPLICANT LISTS---", len(applicant_list_urls))
-        admission_list_files: list[str] = []
-        for applicant_list_url in applicant_list_urls:
+                # applicant_list_urls.append(f"{GOSUSLUGI_URL}{link_href}")
+                receptions2applicant_list_urls[reception_text] = f"{GOSUSLUGI_URL}{link_href}"
+        logger.info("---FOUND %s APPLICANT LISTS---", len(receptions2applicant_list_urls))
+        # admission_list_files: list[str] = []
+        receptions2admission_list_files: dict[str, str | Path] = {}
+        for reception, applicant_list_url in receptions2applicant_list_urls.items():
             await page.goto(applicant_list_url)
             await page.wait_for_selector(DOWNLOAD_AS_TABLE_SELECTOR, timeout=TIMEOUT * 10)
             async with page.expect_download() as download:
@@ -158,10 +163,12 @@ class DownloadApplicants(BaseNode):
             download_value = await download.value
             admission_list_file = f"{ADMISSION_LISTS_DIR}/{download_value.suggested_filename}"
             await download_value.save_as(admission_list_file)
-            admission_list_files.append(admission_list_file)
+            # admission_list_files.append(admission_list_file)
+            receptions2admission_list_files[reception] = admission_list_file
             logger.info("---SUCCESSFULLY SAVED APPLICANTS LIST---")
             await page.go_back()
-        return {"admission_list_files": admission_list_files}
+        # return {"admission_list_files": admission_list_files}
+        return {"receptions2admission_list_files": receptions2admission_list_files}
 
 
 class ParseApplicants(BaseNode):
@@ -169,18 +176,20 @@ class ParseApplicants(BaseNode):
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
         applicants: list[ApplicantSchema] = []
-        for admission_list_file in state.get("admission_list_files", []):
+        # for admission_list_file in state.get("admission_list_files", []):
+        receptions2admission_list_files = state.get("receptions2admission_list_files", {})
+        for reception, admission_list_file in receptions2admission_list_files.items():
             try:
-                df = pl.read_csv(admission_list_file)
+                df = pl.read_csv(admission_list_file, separator=";")
                 reception_applicants = [
                     ApplicantValidator.from_csv_row(
-                        format_row(row),
+                        row,
                         university_id=state["university_id"],
-                        direction_code=state["direction_url"]
+                        direction_code=state["direction_url"],
+                        reception=reception
                     )
-                    for row in df.iter_rows()
+                    for row in df.to_dicts()
                 ]
-                # os.remove(admission_list_file)
                 applicants.extend(reception_applicants)
                 logger.info("---SUCCESSFULLY PARSED %s APPLICANTS---", len(applicants))
             except Exception as e:

@@ -33,6 +33,7 @@ class ApplicantSchema(BaseModel):
     """Абитуриент из конкурсного списка"""
     university_id: int               # ID университета
     direction_code: str              # Код направления подготовки
+    reception: str                   # Вид приёма и число мест
     id: int                          # ID абитуриента с Госуслуг
     place: int                       # Место в конкурсе
     priority: int                    # Приоритет

@@ -33,11 +33,12 @@ class AdmissionListState(TypedDict):
     :param university_id: ID университета с Госуслуг.
     :param direction_url: URL адрес направления подготовки.
     :param direction: Полученное направление подготовки.
-    :param admission_list_files: Скаченные файлы с конкурсными списками.
+    :param receptions2admission_list_files: Скаченные файлы с конкурсными списками.
     :param applicants: Полученные абитуриенты.
     """
     university_id: int
     direction_url: str
     direction: DirectionSchema
-    admission_list_files: list[str | Path]
+    # admission_list_files: list[str | Path]
+    receptions2admission_list_files: dict[str, str | Path]
     applicants: list[ApplicantSchema]
