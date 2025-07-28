@@ -49,6 +49,7 @@ class ApplicantsModel(Base):
 
     university_id: Mapped[int_null]  # ID университета
     direction_code: Mapped[str_null]  # Код направления подготовки
+    reception: Mapped[str_null]
     id: Mapped[int_null]  # ID абитуриента с Госуслуг
     place: Mapped[int_null]  # Порядковый номер
     priority: Mapped[int_null]  # Приоритет
