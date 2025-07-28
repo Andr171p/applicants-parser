@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped
 
@@ -50,15 +48,14 @@ class ApplicantsModel(Base):
 
     university_id: Mapped[int_null]  # ID университета
     direction_code: Mapped[str_null]  # Код направления подготовки
-    applicant_id: Mapped[int_null]  # ID абитуриента с Госуслуг
-    serial_number: Mapped[int_null]  # Порядковый номер
+    id: Mapped[int_null]  # ID абитуриента с Госуслуг
+    place: Mapped[int_null]  # Порядковый номер
     priority: Mapped[int_null]  # Приоритет
     submit: Mapped[str_null]  # Согласие
     total_points: Mapped[int_null]  # Сумма баллов
-    points: Mapped[list_int]  # Баллы за ВИ
+    entrance_exam_points: Mapped[list_int]  # Баллы за ВИ
     additional_points: Mapped[int_null]  # Дополнительные баллы
-    original: Mapped[bool_null]  # Сдан ли оригинал
-    status: Mapped[str_null]  # Статус заявления
-    date: Mapped[datetime]  # Дата подачи заявления
+    without_entrance_exams: Mapped[bool_null]  # Сдан ли оригинал
+    advantage: Mapped[str_null_true]  # Статус заявления
 
-    __table_args__ = (PrimaryKeyConstraint("university_id", "applicant_id", name="applicant_pk"),)
+    __table_args__ = (PrimaryKeyConstraint("university_id", "id", name="applicant_pk"),)
