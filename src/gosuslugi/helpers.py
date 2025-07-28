@@ -3,6 +3,8 @@ from collections.abc import Iterator
 from ..constants import UNIVERSITIES_COUNT
 from .constants import GOSUSLUGI_UNIVERSITY_URL
 
+START = 1
+
 
 def extract_direction_code(url: str) -> str:
     """Извлекает код направления подготовки из его URL.
@@ -33,12 +35,14 @@ def format_row(row: tuple[str]) -> list[str | int]:
     return list(map(lambda x: x.replace('"', ''), row[0].split(";")))
 
 
-def generate_university_urls() -> Iterator[str]:
+def generate_university_urls(start: int = START, end: int = UNIVERSITIES_COUNT) -> Iterator[str]:
     """Генерирует URL университетов на Госуслугах.
 
+    :param start: Начало диапазона включительно
+    :param end: Конец диапазона включительно
     :return: Итератор URL университетов.
     """
-    for id in range(1, UNIVERSITIES_COUNT + 1):
+    for id in range(start, end + 1):
         yield f"{GOSUSLUGI_UNIVERSITY_URL}{id}"
 
 
