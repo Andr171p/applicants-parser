@@ -10,6 +10,7 @@ from .database_configs import (
     list_int,
     str_null,
     str_null_true,
+    text_null_true,
 )
 
 
@@ -56,7 +57,7 @@ class ApplicantsModel(Base):
     entrance_exam_points: Mapped[list_int]  # Баллы за ВИ
     additional_points: Mapped[int_null]  # Дополнительные баллы
     without_entrance_exams: Mapped[bool_null]  # Сдан ли оригинал
-    advantage: Mapped[str_null_true]  # Статус заявления
+    advantage: Mapped[text_null_true]  # Статус заявления
 
     __table_args__ = (
         PrimaryKeyConstraint("university_id", "id", "direction_code", name="applicant_pk"),
