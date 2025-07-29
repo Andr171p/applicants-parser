@@ -1,13 +1,12 @@
-FROM python:3.13-slim
+FROM python:3.13--bookworm
 
 RUN apt-get update && \
     apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install playwright && \
-    playwright install && \
-    playwright install-deps
+RUN pip install playwright==@1.53.0 && \
+    playwright install --with-deps
 
 WORKDIR /app
 
