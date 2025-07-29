@@ -32,7 +32,7 @@ def format_row(row: tuple[str]) -> list[str | int]:
     :param row: Уёбищный кортеж
     :return: Пиздатый массив
     """
-    return list(map(lambda x: x.replace('"', ''), row[0].split(";")))
+    return list(map(lambda x: x.replace('"', ""), row[0].split(";")))
 
 
 def generate_university_urls(start: int = START, end: int = UNIVERSITIES_COUNT) -> Iterator[str]:

@@ -8,10 +8,9 @@ if TYPE_CHECKING:
 import logging
 from pathlib import Path
 
-from src.browser.utils import aget_current_page, ascroll_to_click
-from src.core.enums import EducationForm
-from src.core.schemas import DirectionSchema
-
+from ..browser.utils import aget_current_page, ascroll_to_click
+from ..core.enums import EducationForm
+from ..core.schemas import DirectionSchema
 from .constants import (
     EDUCATION_LEVEL,
     GOSUSLUGI_SEARCH_URL,

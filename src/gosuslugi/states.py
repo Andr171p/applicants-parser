@@ -2,8 +2,8 @@ from typing import Literal, TypedDict
 
 from pathlib import Path
 
-from ..core.enums import EducationForm
 from ..core import ApplicantSchema, DirectionSchema, UniversitySchema
+from ..core.enums import EducationForm
 from .constants import EDUCATION_LEVEL
 
 
@@ -18,6 +18,7 @@ class UniversityState(TypedDict):
     удовлетворяющих фильтрам.
     :param message: Сообщение о выполнении работы графа.
     """
+
     university_url: str
     university: UniversitySchema
     education_forms: list[EducationForm]
@@ -36,6 +37,7 @@ class AdmissionListState(TypedDict):
     :param receptions2admission_list_files: Скаченные файлы с конкурсными списками.
     :param applicants: Полученные абитуриенты.
     """
+
     university_id: int
     direction_url: str
     direction: DirectionSchema

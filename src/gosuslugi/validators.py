@@ -22,7 +22,7 @@ class ApplicantValidator(ApplicantSchema):
             entrance_exam_points=row["Баллы за ВИ"],
             additional_points=row["Баллы за ИД"],
             without_entrance_exams=row["БВИ"],
-            advantage=row["Преимущественное право"]
+            advantage=row["Преимущественное право"],
         )
 
     @field_validator("direction_code", mode="before")
@@ -59,10 +59,7 @@ class DirectionValidator(DirectionSchema):
     def validate_total_places(cls, total_places: str) -> int:
         return int(
             "".join(
-                filter(str.isdigit, total_places
-                       .replace(" ", "")
-                       .replace("&nbsp;", "")
-                       .strip())
+                filter(str.isdigit, total_places.replace(" ", "").replace("&nbsp;", "").strip())
             )
         )
 

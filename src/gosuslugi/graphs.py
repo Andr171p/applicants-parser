@@ -37,9 +37,7 @@ def build_university_graph(
     return graph.compile()
 
 
-def build_admission_list_graph(
-    browser: AsyncBrowser
-) -> CompiledStateGraph[AdmissionListState]:
+def build_admission_list_graph(browser: AsyncBrowser) -> CompiledStateGraph[AdmissionListState]:
     graph = StateGraph(AdmissionListState)
     # Добавление узлов (вершин) графа
     graph.add_node("parse_direction", ParseDirection(browser))

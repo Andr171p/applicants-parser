@@ -45,15 +45,18 @@ logger = logging.getLogger(__name__)
 
 class BaseNode(ABC):
     """Базовый класс для создания узла (вершины графа)."""
+
     def __init__(self, browser: AsyncBrowser) -> None:
         self.browser = browser
 
     @abstractmethod
-    async def __call__(self, state: dict[str, Any]) -> dict[str, Any]: pass
+    async def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
+        pass
 
 
 class ParseUniversity(BaseNode):
     """Парсинг информации об университете по его URL с Госуслуг."""
+
     async def __call__(self, state: UniversityState) -> UniversityState:
         logger.info("---SELECT UNIVERSITY---")
         url = state["university_url"]
@@ -61,30 +64,25 @@ class ParseUniversity(BaseNode):
         await page.goto(url)
         title = await page.locator(ORGANIZATION_TITLE_SELECTOR).text_content()
         university = UniversitySchema(
-            id=extract_university_id(url),
-            title=title.strip(),
-            source=Source.GOSUSLUGI,
-            url=url
+            id=extract_university_id(url), title=title.strip(), source=Source.GOSUSLUGI, url=url
         )
         return {"university": university}
 
 
 class FilterDirectionURLs(BaseNode):
     """Фильтрация направлений подготовки на странице."""
+
     async def __call__(self, state: UniversityState) -> UniversityState:
         logger.info("---FILTER DIRECTIONS---")
         page = await aget_current_page(self.browser)
         button = await page.wait_for_selector(FILTER_BUTTON_SELECTOR, timeout=TIMEOUT)
         await button.click()
         for education_form in state.get("education_forms", []):
-            await page.click(
-                EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form)
-            )
+            await page.click(EDUCATION_FORM_FILTER_SELECTOR.format(education_form=education_form))
             logger.info("---CHOSEN EDUCATION FORM `%s`---", education_form.upper())
         for education_level in state.get("education_levels", []):
             await page.click(
-                EDUCATION_LEVEL_FILTER_SELECTOR.format(
-                    education_level=education_level)
+                EDUCATION_LEVEL_FILTER_SELECTOR.format(education_level=education_level)
             )
             logger.info("---CHOSEN EDUCATION LEVEL `%s`", education_level.upper())
         await page.click("button:has-text('Применить')")
@@ -95,6 +93,7 @@ class FilterDirectionURLs(BaseNode):
 
 class ParseDirection(BaseNode):
     """Парсинг конкретного направления подготовки."""
+
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         url = state["direction_url"]
         logger.info("---PARSE DIRECTION %s---", url)
@@ -124,18 +123,18 @@ class ParseDirection(BaseNode):
         except PlaywrightTimeoutError:
             direction_kwargs["budget_places"] = ZERO_VALUE
         direction_kwargs["total_places"] = await page.text_content(TOTAL_PLACES_SELECTOR)
-        direction_kwargs["education_price"] = await page.text_content(
-            EDUCATION_PRICE_SELECTOR
-        )
+        direction_kwargs["education_price"] = await page.text_content(EDUCATION_PRICE_SELECTOR)
         direction = DirectionValidator(**direction_kwargs)
         return {"direction": direction}
 
 
 class DownloadApplicants(BaseNode):
     """Скачивание файлов с конкурсными списками."""
+
     async def __call__(
-        self, state: AdmissionListState  # noqa: ARG002
-) -> AdmissionListState:
+        self,
+        state: AdmissionListState,  # noqa: ARG002
+    ) -> AdmissionListState:
         logger.info("---DOWNLOAD APPLICANTS LISTS---")
         page = await aget_current_page(self.browser)
         await page.wait_for_selector(LIST_OF_APPLICANTS_SELECTOR, timeout=TIMEOUT)
@@ -173,6 +172,7 @@ class DownloadApplicants(BaseNode):
 
 class ParseApplicants(BaseNode):
     """Парсинг абитуриентов из файлов с конкурсными списками."""
+
     async def __call__(self, state: AdmissionListState) -> AdmissionListState:
         logger.info("---PARSE APPLICANTS---")
         applicants: list[ApplicantSchema] = []
@@ -186,7 +186,7 @@ class ParseApplicants(BaseNode):
                         row,
                         university_id=state["university_id"],
                         direction_code=state["direction_url"],
-                        reception=reception
+                        reception=reception,
                     )
                     for row in df.to_dicts()
                 ]
@@ -203,6 +203,7 @@ class ParseAdmissionLists(BaseNode):
     """Парсинг всей информации об университете и конкурсных списков
     с отправкой в брокер сообщений.
     """
+
     def __init__(self, broker: Broker, browser: AsyncBrowser) -> None:
         super().__init__(browser)
         self.broker = broker
@@ -218,11 +219,11 @@ class ParseAdmissionLists(BaseNode):
             try:
                 response = await graph.ainvoke({
                     "university_id": university_id,
-                    "direction_url": direction_url
+                    "direction_url": direction_url,
                 })
                 await asyncio.gather(
                     self.broker.publish(response.get("direction"), queue="directions"),
-                    self.broker.publish(response.get("applicants"), queue="applicants")
+                    self.broker.publish(response.get("applicants"), queue="applicants"),
                 )
             except Exception as e:
                 logger.exception("---ERROR OCCURRED %s---", e)  # noqa: TRY401
