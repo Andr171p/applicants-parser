@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from sqlalchemy import insert
+from sqlalchemy.dialects.postgresql import insert as upsert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from ..core import ApplicantSchema, DirectionSchema, UniversitySchema
@@ -37,8 +38,23 @@ async def add_directions(schema: DirectionSchema) -> None:
         await session.commit()
 
 
-async def add_all_applicants(data: list[ApplicantSchema]) -> None:
+async def add_all_applicants(applicants: list[ApplicantSchema]) -> None:
+    async with get_session() as session:
+        for applicant in applicants:
+            stmt = (
+                upsert(ApplicantsModel)
+                .values(**applicant.model_dump())
+                .on_conflict_do_update(
+                    constraint="applicant_pk",
+                    set_=applicant.model_dump()
+                )
+            )
+            await session.execute(stmt)
+        await session.commit()
+
+
+"""async def add_all_applicants(data: list[ApplicantSchema]) -> None:
     async with get_session() as session:
         stmt = [ApplicantsModel(**applicant.model_dump()) for applicant in data]
         session.add_all(stmt)
-        await session.commit()
+        await session.commit()"""
