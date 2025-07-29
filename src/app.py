@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from dishka.integrations.faststream import setup_dishka
 from faststream import FastStream
@@ -22,6 +23,16 @@ async def create_faststream_app() -> FastStream:
     app = FastStream(broker)
     setup_dishka(container=container, app=app, auto_inject=True)
     return app
+
+
+@asynccontextmanager
+async def start_broker() -> None:
+    faststream_app = await create_faststream_app()
+    await faststream_app.broker.start()
+    logger.info("Broker started")
+    yield
+    await faststream_app.broker.close()
+    logger.info("Broker closed")
 
 
 async def execute_gosuslugi_parser() -> None:

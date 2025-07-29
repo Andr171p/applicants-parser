@@ -12,3 +12,5 @@ MAX_RECURSION_LIMIT = 50
 
 # Количество университетов.
 UNIVERSITIES_COUNT = 1737
+
+TIMEOUT = 5
