@@ -37,11 +37,7 @@ async def execute_gosuslugi_parser() -> None:
                     "education_levels": EDUCATION_LEVELS,
                 })
                 logger.info(
-                    "Received response from graph for %s, response: %s",
-                    university_url, response
+                    "Received response from graph for %s, response: %s", university_url, response
                 )
             except Exception as e:
-                logger.exception(
-                    "Error while parse %s, error: %s",
-                    university_url, e
-                )
+                logger.exception("Error while parse %s, error: %s", university_url, e)
