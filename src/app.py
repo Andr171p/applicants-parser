@@ -31,7 +31,7 @@ async def start_broker() -> None:
     await faststream_app.broker.start()
     logger.info("Broker started")
     yield
-    await faststream_app.broker.close()
+    await faststream_app.broker.stop()
     logger.info("Broker closed")
 
 
