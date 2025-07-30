@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from src.app import start_broker, execute_gosuslugi_parser
+from src.app import execute_gosuslugi_parser, start_broker
 from src.constants import TIMEOUT
 
 
