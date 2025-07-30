@@ -10,6 +10,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from uuid import uuid4
 
 import polars as pl
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -160,7 +161,8 @@ class DownloadApplicants(BaseNode):
             async with page.expect_download() as download:
                 await page.click(DOWNLOAD_AS_TABLE_SELECTOR)
             download_value = await download.value
-            admission_list_file = f"{ADMISSION_LISTS_DIR}/{download_value.suggested_filename}"
+            # admission_list_file = f"{ADMISSION_LISTS_DIR}/{download_value.suggested_filename}"
+            admission_list_file = rf"{ADMISSION_LISTS_DIR}\\{uuid4()}.csv"
             await download_value.save_as(admission_list_file)
             # admission_list_files.append(admission_list_file)
             receptions2admission_list_files[reception] = admission_list_file
