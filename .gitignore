@@ -85,3 +85,6 @@ scripts
 .docker
 DIORag.iml
 assets
+
+./dump.sql
+dump.sql

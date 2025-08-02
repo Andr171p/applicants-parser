@@ -40,7 +40,7 @@ async def execute_gosuslugi_parser() -> None:
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=False)
         graph = build_university_graph(broker, browser)
-        for university_url in generate_university_urls(start=100):
+        for university_url in generate_university_urls(start=63, end=100):
             try:
                 response = await graph.ainvoke({
                     "university_url": university_url,
